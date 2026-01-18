@@ -2,15 +2,19 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Camera, Package, List, Save, CheckCircle2, 
   AlertCircle, Database, LayoutDashboard, 
-  Clock, RotateCcw, Search, X, RefreshCw, Lock, 
-  ChevronRight, Calendar, Box, Activity 
+  Clock, Search, X, RefreshCw, Lock 
 } from 'lucide-react';
 
-// --- CẤU HÌNH LIÊN KẾT ---
+/**
+ * PHIÊN BẢN V6.0 LITE - KIỆT INVENTORY
+ * - Đã loại bỏ tính năng định mức tồn kho.
+ * - Giao diện tối giản, tập trung vào trải nghiệm nhập liệu.
+ */
+
 const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbwUCPOacIF5FDOAuo8e8266cgntJU18LqgEywK70iFimEaral_XmDCfvEf10aJ_hmXl/exec";
 const RESET_PASSWORD = "040703";
 
-// --- DANH SÁCH 177 SẢN PHẨM (Đã bỏ min) ---
+// --- DANH SÁCH 177 SẢN PHẨM (ĐÃ LƯỢC BỎ BIẾN MIN) ---
 const SKU_LIST = [
   { sku: "110011", name: "Cà phê chế phin 1-500Gr", unit: "KG" },
   { sku: "210014", name: "Cà phê chế phin 4-500Gr", unit: "KG" },
@@ -209,7 +213,7 @@ export default function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState([]);
 
-  // --- LOGIC GỘP TỒN KHO ---
+  // --- LOGIC TỔNG HỢP ---
   const inventorySummary = useMemo(() => {
     const summary = {};
     logs.forEach(log => {
@@ -231,24 +235,20 @@ export default function App() {
          summary[productSku].batches[hsd] = (summary[productSku].batches[hsd] || 0) + qty;
       }
     });
-
     return Object.values(summary).map(item => {
       const total = Object.values(item.batches).reduce((sum, val) => sum + val, 0);
       return { ...item, totalQty: total };
     });
   }, [logs]);
 
-  // Màu Date tinh tế
   const getBatchColor = (hsd) => {
     if (!hsd || hsd === "Không có Date") return "text-gray-400";
     const today = new Date();
     const exp = new Date(hsd);
-    const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) return "text-red-600 font-bold bg-red-50 px-2 rounded"; 
-    if (diffDays <= 120) return "text-orange-600 font-medium bg-orange-50 px-2 rounded"; 
-    if (diffDays <= 180) return "text-yellow-600 font-medium"; 
-    return "text-emerald-600 font-medium"; 
+    const diffDays = Math.ceil((exp - today) / (86400000));
+    if (diffDays < 0) return "text-red-600 font-bold"; 
+    if (diffDays <= 90) return "text-orange-500 font-medium"; 
+    return "text-green-600"; 
   };
 
   useEffect(() => {
@@ -269,7 +269,7 @@ export default function App() {
 
   const showStatus = (type, message) => {
     setStatus({ type, message });
-    setTimeout(() => setStatus(null), 3000);
+    setTimeout(() => setStatus(null), 2500);
   };
 
   const handleSave = async () => {
@@ -294,7 +294,7 @@ export default function App() {
   };
 
   const handleReset = async () => {
-    if (passwordInput !== RESET_PASSWORD) { alert("Mật khẩu sai!"); return; }
+    if (passwordInput !== RESET_PASSWORD) { showStatus('error', 'Mật khẩu sai!'); return; }
     setIsSyncing(true);
     try {
       await fetch(FIXED_SHEET_URL, {
@@ -307,209 +307,175 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-24 select-none">
-      {/* Header - Royal Blue Style */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 px-5 py-4 flex justify-between items-center shadow-sm">
+    <div className="min-h-screen bg-white text-gray-900 font-sans pb-24 select-none">
+      {/* HEADER */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50 px-5 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-700 text-white p-2 rounded-xl shadow-md shadow-blue-200">
-            <Package size={22} />
+          <div className="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-100">
+            <Package size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-none tracking-tight">Kiệt Inventory</h1>
-            <p className="text-[10px] text-gray-500 font-semibold mt-1 uppercase tracking-wider">Premium v6.0</p>
+            <h1 className="text-sm font-bold tracking-tight">Kiệt Inventory</h1>
+            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">v6.0 Lite Edition</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 shadow-sm">
-           <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-emerald-500'}`}></span>
-           <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">Online</span>
+        <div className="flex items-center gap-2 bg-green-50 px-2 py-1 rounded-full">
+           <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></span>
+           <span className="text-[9px] font-bold text-green-700 uppercase">Live</span>
         </div>
       </header>
 
-      {/* Status Bar - Floating */}
+      {/* TOAST STATUS */}
       {status && (
-        <div className={`fixed top-20 left-4 right-4 z-[60] py-3 px-4 rounded-xl shadow-xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 backdrop-blur-md ${
-          status.type === 'success' ? 'bg-white/90 border-emerald-100 text-emerald-700' : 'bg-white/90 border-red-100 text-red-700'
+        <div className={`fixed top-20 left-4 right-4 z-[60] py-4 px-5 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${
+          status.type === 'success' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-red-500 border-red-400 text-white'
         }`}>
           {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-          <span className="text-sm font-semibold">{status.message}</span>
+          <span className="text-sm font-bold tracking-tight">{status.message}</span>
         </div>
       )}
 
-      {/* Modal Reset - Minimal */}
+      {/* MODAL RESET */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden p-6 text-center animate-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
+        <div className="fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs overflow-hidden p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Lock size={28} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Xác thực Admin</h3>
-            <p className="text-sm text-gray-500 mt-1 mb-5">Nhập mã PIN để xóa dữ liệu.</p>
-            
+            <h3 className="text-lg font-bold">Xác nhận xóa kho</h3>
+            <p className="text-xs text-gray-400 mt-1">Hành động này không thể hoàn tác.</p>
             <input 
               type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="••••••" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-2xl tracking-[0.5em] focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all mb-6"
-              autoFocus
+              placeholder="Nhập mã pin" className="w-full mt-5 p-4 bg-gray-50 border-none rounded-2xl text-center text-xl tracking-[0.3em] focus:ring-2 focus:ring-red-500 outline-none"
             />
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => {setShowResetConfirm(false); setPasswordInput('');}} className="py-3 bg-white border border-gray-300 text-gray-600 rounded-xl text-xs font-bold uppercase hover:bg-gray-50">Hủy</button>
-              <button onClick={handleReset} className="py-3 bg-red-600 text-white rounded-xl text-xs font-bold uppercase hover:bg-red-700 shadow-md shadow-red-200">Xóa Ngay</button>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button onClick={() => {setShowResetConfirm(false); setPasswordInput('');}} className="py-3.5 bg-gray-50 text-gray-500 rounded-2xl text-xs font-bold uppercase">Hủy</button>
+              <button onClick={handleReset} className="py-3.5 bg-red-500 text-white rounded-2xl text-xs font-bold uppercase">Xóa hết</button>
             </div>
           </div>
         </div>
       )}
 
-      <main className="max-w-md mx-auto p-4 space-y-5">
-        {/* VIEW 1: NHẬP & KIỂM KÊ */}
+      <main className="max-w-md mx-auto p-5 space-y-6">
+        
+        {/* VIEW: SCAN / NHẬP LIỆU */}
         {view === 'scan' && (
-          <div className="space-y-5 animate-in fade-in duration-300">
-            {/* Mode Switcher */}
-            <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 flex text-sm font-bold">
-              <button 
-                onClick={() => setIsAdjustment(false)} 
-                className={`flex-1 py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${!isAdjustment ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-              >
-                <Package size={16} /> Nhập Hàng
-              </button>
-              <button 
-                onClick={() => setIsAdjustment(true)} 
-                className={`flex-1 py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${isAdjustment ? 'bg-orange-500 text-white shadow-md' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-              >
-                <ClipboardCheck size={16} /> Kiểm Kê
-              </button>
+          <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="bg-gray-100 p-1.5 rounded-2xl flex text-[10px] font-bold uppercase">
+              <button onClick={() => setIsAdjustment(false)} className={`flex-1 py-3 rounded-xl transition-all ${!isAdjustment ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>Nhập Hàng</button>
+              <button onClick={() => setIsAdjustment(true)} className={`flex-1 py-3 rounded-xl transition-all ${isAdjustment ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400'}`}>Kiểm Kê</button>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-lg shadow-gray-100/50 border border-gray-100 overflow-hidden">
-              <div className="p-6 space-y-6">
-                {/* Tìm kiếm */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Sản phẩm</label>
-                  <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={20} />
-                    <input 
-                      type="text" value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setShowSuggestions(true);}} 
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all text-sm font-semibold"
-                      placeholder="Gõ tên để tìm..."
-                    />
-                    {searchTerm && (
-                      <button onClick={() => {setSearchTerm(''); setSku(''); setName('');}} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
-                        <X size={16} />
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Dropdown Gợi ý */}
-                  {showSuggestions && filteredProducts.length > 0 && (
-                    <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 max-h-64 overflow-y-auto divide-y divide-gray-50 ring-4 ring-gray-50">
-                      {filteredProducts.map((p, idx) => (
-                        <button key={idx} onClick={() => selectProduct(p)} className="w-full p-4 text-left hover:bg-blue-50/50 flex justify-between items-center group transition-colors">
-                          <div className="flex-1 pr-2">
-                            <div className="text-sm font-semibold text-gray-800 line-clamp-1 group-hover:text-blue-700">{p.name}</div>
-                            <div className="text-[10px] text-gray-400 mt-0.5 font-mono">{p.sku}</div>
-                          </div>
-                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2.5 py-1 rounded-lg font-bold uppercase group-hover:bg-white group-hover:text-blue-600 transition-colors shadow-sm">{p.unit}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+            <div className="space-y-6">
+              <div className="relative">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Tìm món hàng</label>
+                <div className="relative group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+                  <input 
+                    type="text" value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setShowSuggestions(true);}} 
+                    className="w-full pl-12 pr-4 py-4.5 bg-gray-50 rounded-2xl text-sm font-bold border-none focus:ring-2 focus:ring-indigo-600 outline-none shadow-sm transition-all"
+                    placeholder="Tên hoặc mã SKU..."
+                  />
                 </div>
-
-                {/* SKU Info Box */}
-                {name && (
-                  <div className="bg-blue-50/80 border border-blue-100 rounded-2xl p-4 flex justify-between items-center animate-in zoom-in-95 duration-200">
-                    <div className="flex-1">
-                      <span className="text-sm font-bold text-blue-900 line-clamp-1">{name}</span>
-                      <p className="text-[10px] text-blue-500 font-medium mt-0.5">Đơn vị: {unit}</p>
-                    </div>
-                    <span className="text-[10px] font-mono text-blue-700 bg-white px-2.5 py-1.5 rounded-lg border border-blue-100 shadow-sm shrink-0">{sku}</span>
+                {showSuggestions && filteredProducts.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 max-h-72 overflow-y-auto animate-in slide-in-from-top-2">
+                    {filteredProducts.map((p, idx) => (
+                      <button key={idx} onClick={() => selectProduct(p)} className="w-full p-4 text-left border-b border-gray-50 hover:bg-indigo-50 flex justify-between items-center active:scale-[0.98] transition-transform">
+                        <div className="flex-1">
+                          <div className="text-xs font-bold text-gray-800">{p.name}</div>
+                          <div className="text-[10px] text-gray-400 mt-1 font-mono">{p.sku}</div>
+                        </div>
+                        <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold uppercase">{p.unit}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{isAdjustment ? 'Thực tế' : 'Số lượng'}</label>
-                    <div className="relative">
-                      <input 
-                        type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} 
-                        className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-900 text-center font-bold text-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all placeholder:text-gray-300"
-                        placeholder="0"
-                      />
-                    </div>
+              {name && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex justify-between items-center animate-in zoom-in-95 duration-300">
+                  <div className="flex-1 pr-4">
+                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Đã chọn sản phẩm</span>
+                    <span className="text-xs font-bold text-indigo-900 leading-tight">{name}</span>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Hạn dùng</label>
-                    <div className="relative">
-                       <input 
-                        type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} 
-                        className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-gray-900 text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                      />
-                    </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono text-indigo-600 bg-white px-2 py-1 rounded-lg shadow-sm border border-indigo-100">{sku}</span>
                   </div>
                 </div>
+              )}
 
-                <button 
-                  onClick={handleSave} disabled={isSyncing} 
-                  className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all font-bold text-sm uppercase tracking-widest shadow-lg active:scale-95 ${
-                    isSyncing ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 
-                    (isAdjustment ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-200' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200')
-                  }`}
-                >
-                  {isSyncing ? <RefreshCw className="animate-spin" size={18} /> : (isAdjustment ? <ClipboardCheck size={18} /> : <Save size={18} />)}
-                  <span>{isSyncing ? 'Đang xử lý...' : (isAdjustment ? 'Xác nhận Kiểm Kê' : 'Lưu Nhập Kho')}</span>
-                </button>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Số lượng</label>
+                  <input 
+                    type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} 
+                    className="w-full p-4 bg-gray-50 rounded-2xl text-center text-3xl font-black text-indigo-600 border-none focus:ring-2 focus:ring-indigo-600 outline-none shadow-sm placeholder:text-gray-200"
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Hạn dùng</label>
+                  <input 
+                    type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} 
+                    className="w-full p-4 bg-gray-50 rounded-2xl text-[11px] font-bold border-none focus:ring-2 focus:ring-indigo-600 outline-none shadow-sm"
+                  />
+                </div>
               </div>
+
+              <button 
+                onClick={handleSave} disabled={isSyncing} 
+                className={`w-full py-5 rounded-2xl flex items-center justify-center gap-3 transition-all font-bold text-xs uppercase tracking-[0.2em] shadow-xl ${
+                  isSyncing ? 'bg-gray-200 text-gray-400' : (isAdjustment ? 'bg-orange-500 text-white shadow-orange-100' : 'bg-indigo-600 text-white shadow-indigo-100')
+                } active:scale-[0.97]`}
+              >
+                {isSyncing ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
+                <span>{isSyncing ? 'Đang gửi...' : 'Xác nhận lưu'}</span>
+              </button>
             </div>
           </div>
         )}
 
-        {/* VIEW 2: TỔNG KHO - Layout Card Chuyên nghiệp */}
+        {/* VIEW: SUMMARY / TỒN KHO */}
         {view === 'summary' && (
           <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
             <div className="flex justify-between items-center px-1">
-              <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-wide">
-                <Database size={18} className="text-blue-600" /> Tổng Quan Kho
-              </h2>
-              <button 
-                onClick={() => setShowResetConfirm(true)} 
-                className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 border border-red-100 shadow-sm"
-              >
-                <RotateCcw size={14} /> Reset
-              </button>
+              <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2"><Database size={14} /> Tổng Tồn Thực Tế</h2>
+              <button onClick={() => setShowResetConfirm(true)} className="text-[9px] font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl border border-red-100 uppercase">Dọn dẹp kho</button>
             </div>
             
             {inventorySummary.length === 0 ? (
-              <div className="py-20 text-center text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-                <Package size={56} className="mx-auto mb-3 opacity-30 text-gray-300" />
-                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Chưa có dữ liệu</p>
+              <div className="py-24 text-center text-gray-300 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
+                <Package size={48} className="mx-auto mb-4 opacity-10" />
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Kho đang trống</p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="space-y-4">
                 {inventorySummary.map((item, idx) => (
-                  <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                    <div className="p-5 flex justify-between items-start border-b border-gray-50 bg-gray-50/30">
-                      <div>
-                        <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{item.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] text-gray-500 font-mono bg-gray-100 px-1.5 py-0.5 rounded">{item.sku}</span>
-                        </div>
+                  <div key={idx} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2" style={{animationDelay: `${idx * 50}ms`}}>
+                    <div className="p-5 flex justify-between items-start bg-gray-50/30">
+                      <div className="flex-1 pr-4">
+                        <h3 className="font-bold text-gray-900 text-xs leading-tight">{item.name}</h3>
+                        <p className="text-[9px] text-gray-400 font-mono mt-1.5 uppercase tracking-wider">{item.sku}</p>
                       </div>
-                      <div className="text-right pl-4">
-                        <span className="text-[9px] text-gray-400 font-bold uppercase block mb-0.5 tracking-wider">Tổng</span>
-                        <div className="flex items-baseline justify-end gap-1">
-                           <span className="text-2xl font-black text-gray-900 leading-none">{item.totalQty}</span>
-                           <span className="text-[10px] text-gray-500 font-bold">{item.unit}</span>
+                      <div className="text-right shrink-0">
+                        <div className="flex items-baseline gap-1 justify-end">
+                           <span className="text-2xl font-black tracking-tight text-indigo-600">{item.totalQty}</span>
+                           <span className="text-[10px] text-gray-400 font-bold uppercase">{item.unit}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="divide-y divide-gray-50">
-                      {Object.entries(item.batches).sort().map(([date, qty], bIdx) => (
-                        <div key={bIdx} className="p-4 flex justify-between items-center text-xs hover:bg-gray-50 transition-colors">
-                          <div className={`flex items-center gap-2.5 font-medium ${getBatchColor(date)}`}>
-                            <Clock size={16} />
-                            <span className="tracking-tight">{new Date(date).toLocaleDateString('vi-VN')}</span>
+                    <div className="bg-white px-2 pb-2">
+                      <div className="bg-white rounded-2xl overflow-hidden border border-gray-50">
+                        {Object.entries(item.batches).sort().map(([date, qty], bIdx) => (
+                          <div key={bIdx} className="p-3.5 flex justify-between items-center text-[11px] border-b last:border-0 border-gray-50">
+                            <div className={`flex items-center gap-2.5 ${getBatchColor(date)}`}>
+                              <div className="p-1 bg-current opacity-10 rounded-lg"><Clock size={12} /></div>
+                              <span className="font-bold">{date === "Không có Date" ? "Chưa có HSD" : new Date(date).toLocaleDateString('vi-VN')}</span>
+                            </div>
+                            <span className="font-black text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">{qty}</span>
                           </div>
-                          <span className="font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-lg text-xs shadow-sm">SL: {qty}</span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -518,33 +484,31 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 3: NHẬT KÝ - Dạng Timeline Gọn gàng */}
+        {/* VIEW: HISTORY / NHẬT KÝ */}
         {view === 'history' && (
           <div className="space-y-5 animate-in slide-in-from-left-4 duration-300">
-             <h2 className="text-sm font-bold text-gray-800 px-1 flex items-center gap-2 uppercase tracking-wide">
-              <List size={18} className="text-green-600" /> Nhật Ký Hoạt Động
-            </h2>
-            <div className="relative border-l-2 border-gray-200 ml-3 space-y-6 pb-6 pl-6">
+             <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2"><List size={14} /> Nhật Ký Hoạt Động</h2>
+             <div className="space-y-3 pb-8">
               {logs.length === 0 ? (
-                 <p className="text-xs text-gray-400 italic py-4">Chưa có hoạt động nào hôm nay.</p>
+                 <div className="text-center py-20 text-gray-300 italic text-xs">Chưa ghi nhận giao dịch nào.</div>
               ) : (
                 logs.map((log, idx) => (
-                  <div key={log.id} className="relative group">
-                    <div className={`absolute -left-[31px] top-4 w-3 h-3 rounded-full border-2 border-white shadow-sm ring-1 ring-gray-100 ${log.loai === 'KiemKe' ? 'bg-orange-500' : 'bg-blue-500'}`}></div>
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start hover:border-blue-200 transition-colors">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ${log.loai === 'KiemKe' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
-                            {log.loai === 'KiemKe' ? 'Kiểm kê' : 'Nhập'}
-                          </span>
-                          <span className="text-[9px] text-gray-400 font-medium">{log.thoi_gian}</span>
-                        </div>
-                        <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{log.ten_san_pham}</h4>
+                  <div key={log.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center animate-in fade-in duration-300">
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
+                          log.loai === 'KiemKe' ? 'bg-orange-100 text-orange-600' : 'bg-indigo-100 text-indigo-600'
+                        }`}>
+                          {log.loai === 'KiemKe' ? 'Kiểm' : 'Nhập'}
+                        </span>
+                        <span className="text-[9px] text-gray-300 font-medium">{log.thoi_gian.split(',')[0]}</span>
                       </div>
-                      <div className="text-right pl-4">
-                        <span className="block text-lg font-black text-gray-900 leading-none">{log.so_luong}</span>
-                        <span className="text-[9px] text-gray-400 font-bold uppercase">{log.don_vi}</span>
-                      </div>
+                      <h4 className="text-xs font-bold text-gray-800 line-clamp-1">{log.ten_san_pham}</h4>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-lg font-black ${log.loai === 'KiemKe' ? 'text-orange-500' : 'text-indigo-600'}`}>
+                        {log.loai === 'KiemKe' ? '' : '+'}{log.so_luong}
+                      </span>
                     </div>
                   </div>
                 ))
@@ -554,35 +518,22 @@ export default function App() {
         )}
       </main>
 
-      {/* Bottom Navigation - Glassmorphism */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 px-6 py-2 pb-6 flex justify-around items-center z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <button 
-          onClick={() => setView('scan')}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300 relative ${view === 'scan' ? 'text-blue-600 scale-105' : 'text-gray-400 hover:text-gray-600'}`}
-        >
-          <Camera size={24} strokeWidth={view === 'scan' ? 2.5 : 2} />
-          <span className="text-[10px] font-bold">Nhập</span>
-          {view === 'scan' && <span className="absolute -bottom-2 w-1 h-1 bg-blue-600 rounded-full"></span>}
+      {/* BOTTOM NAV */}
+      <nav className="fixed bottom-6 left-6 right-6 bg-white/90 backdrop-blur-xl border border-gray-100 rounded-3xl p-2 flex justify-around items-center z-40 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+        <button onClick={() => setView('scan')} className={`flex flex-col items-center gap-1.5 flex-1 py-3 rounded-2xl transition-all duration-300 ${view === 'scan' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 translate-y-[-4px]' : 'text-gray-400 hover:text-indigo-400'}`}>
+          <Camera size={20} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">Nhập</span>
         </button>
-        <button 
-          onClick={() => setView('summary')}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300 relative ${view === 'summary' ? 'text-blue-600 scale-105' : 'text-gray-400 hover:text-gray-600'}`}
-        >
-          <LayoutDashboard size={24} strokeWidth={view === 'summary' ? 2.5 : 2} />
-          <span className="text-[10px] font-bold">Tổng Kho</span>
-          {view === 'summary' && <span className="absolute -bottom-2 w-1 h-1 bg-blue-600 rounded-full"></span>}
+        <button onClick={() => setView('summary')} className={`flex flex-col items-center gap-1.5 flex-1 py-3 rounded-2xl transition-all duration-300 ${view === 'summary' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 translate-y-[-4px]' : 'text-gray-400 hover:text-indigo-400'}`}>
+          <LayoutDashboard size={20} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">Kho</span>
         </button>
-        <button 
-          onClick={() => setView('history')}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-300 relative ${view === 'history' ? 'text-blue-600 scale-105' : 'text-gray-400 hover:text-gray-600'}`}
-        >
-          <List size={24} strokeWidth={view === 'history' ? 2.5 : 2} />
-          <span className="text-[10px] font-bold">Lịch Sử</span>
-          {view === 'history' && <span className="absolute -bottom-2 w-1 h-1 bg-blue-600 rounded-full"></span>}
+        <button onClick={() => setView('history')} className={`flex flex-col items-center gap-1.5 flex-1 py-3 rounded-2xl transition-all duration-300 ${view === 'history' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 translate-y-[-4px]' : 'text-gray-400 hover:text-indigo-400'}`}>
+          <List size={20} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">Sử</span>
         </button>
       </nav>
     </div>
   );
 }
-
 
