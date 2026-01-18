@@ -7,16 +7,16 @@ import {
 } from 'lucide-react';
 
 /**
- * KIỆT INVENTORY V7.0 - LUXURY MOBILE EDITION
- * - Backend: Apps Script v6.4 (Auto-sort & Merge)
- * - Frontend: Premium UI/UX, Glassmorphism, Optimized Touch Targets
+ * KIỆT INVENTORY V7.1 - LUXURY MOBILE EDITION
+ * - Fix lỗi gộp: Sử dụng String Substring thay vì Date Object để tránh lệch múi giờ.
+ * - Backend: Apps Script v6.4
  */
 
 // --- CẤU HÌNH HỆ THỐNG ---
 const API_URL = "https://script.google.com/macros/s/AKfycbxkZ4WuS_AV32gwwzEggLM4G-VL3uM_PfoFCqYpM9gKMO9dRpeV3BdUdG-oDPMAJkzw/exec";
 const ADMIN_PIN = "040703";
 
-// --- DANH SÁCH SẢN PHẨM (GIỮ NGUYÊN) ---
+// --- DANH SÁCH SẢN PHẨM ---
 const SKU_LIST = [
   { sku: "110011", name: "Cà phê chế phin 1-500Gr", unit: "KG" },
   { sku: "210014", name: "Cà phê chế phin 4-500Gr", unit: "KG" },
@@ -214,17 +214,17 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState([]);
 
-  // --- LOGIC TỔNG HỢP ---
+  // --- LOGIC TỔNG HỢP (FIXED: STRING SUBSTRING) ---
   const inventorySummary = useMemo(() => {
     const summary = {};
     logs.forEach(log => {
       const productSku = String(log.sku).trim();
       let normalizedDate = "Không có Date";
+      
       if (log.hsd && log.hsd !== "Không có Date") {
-        try {
-          // Chuẩn hóa YYYY-MM-DD
-          normalizedDate = new Date(log.hsd).toISOString().split('T')[0];
-        } catch (e) { normalizedDate = String(log.hsd).trim(); }
+        // Fix: Cắt chuỗi 10 ký tự đầu tiên thay vì dùng Date Object
+        // Ví dụ: "2024-05-20" hoặc "2024-05-20T17:00..." đều thành "2024-05-20"
+        normalizedDate = String(log.hsd).trim().substring(0, 10);
       }
 
       if (!summary[productSku]) {
@@ -316,7 +316,7 @@ function App() {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight text-slate-900 leading-none">Kiệt Inventory</h1>
-            <p className="text-[10px] text-slate-500 font-semibold tracking-wider mt-1 uppercase">Luxury Edition v7.0</p>
+            <p className="text-[10px] text-slate-500 font-semibold tracking-wider mt-1 uppercase">Luxury Edition v7.1</p>
           </div>
         </div>
         <div className={`px-3 py-1.5 rounded-full border flex items-center gap-2 ${isSyncing ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
