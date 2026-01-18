@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom/client';
 import { 
   Camera, Package, List, Save, CheckCircle2, 
   AlertCircle, Database, LayoutDashboard, 
-  Clock, Search, X, RefreshCw, Lock 
+  Clock, Search, RefreshCw, Lock 
 } from 'lucide-react';
 
 /**
- * PHIÊN BẢN V6.0 LITE - KIỆT INVENTORY
- * - Đã loại bỏ tính năng định mức tồn kho.
- * - Giao diện tối giản, tập trung vào trải nghiệm nhập liệu.
+ * KIỆT INVENTORY V6.0 LITE (SINGLE FILE EDITION)
+ * - Đã gộp App.jsx và main.jsx làm một để tránh lỗi đường dẫn.
+ * - Giao diện cân bằng, không định mức.
  */
 
 const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbwUCPOacIF5FDOAuo8e8266cgntJU18LqgEywK70iFimEaral_XmDCfvEf10aJ_hmXl/exec";
 const RESET_PASSWORD = "040703";
 
-// --- DANH SÁCH 177 SẢN PHẨM (ĐÃ LƯỢC BỎ BIẾN MIN) ---
 const SKU_LIST = [
   { sku: "110011", name: "Cà phê chế phin 1-500Gr", unit: "KG" },
   { sku: "210014", name: "Cà phê chế phin 4-500Gr", unit: "KG" },
@@ -195,7 +195,7 @@ const SKU_LIST = [
   { sku: "25559", name: "Mứt Táo đỏ long nhãn 1kg", unit: "HOP" }
 ];
 
-export default function App() {
+function App() {
   const [view, setView] = useState('scan'); 
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
@@ -213,7 +213,6 @@ export default function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState([]);
 
-  // --- LOGIC TỔNG HỢP ---
   const inventorySummary = useMemo(() => {
     const summary = {};
     logs.forEach(log => {
@@ -240,16 +239,6 @@ export default function App() {
       return { ...item, totalQty: total };
     });
   }, [logs]);
-
-  const getBatchColor = (hsd) => {
-    if (!hsd || hsd === "Không có Date") return "text-gray-400";
-    const today = new Date();
-    const exp = new Date(hsd);
-    const diffDays = Math.ceil((exp - today) / (86400000));
-    if (diffDays < 0) return "text-red-600 font-bold"; 
-    if (diffDays <= 90) return "text-orange-500 font-medium"; 
-    return "text-green-600"; 
-  };
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -279,7 +268,7 @@ export default function App() {
     const newEntry = {
       thoi_gian: new Date().toLocaleString('vi-VN'),
       sku: String(sku).trim(), ten_san_pham: name, don_vi: unit,
-      so_luong: quantity, hsd: expiryDate, loai: isAdjustment ? 'KiemKe' : 'NhapHang'
+      so_luong: Number(quantity), hsd: expiryDate, loai: isAdjustment ? 'KiemKe' : 'NhapHang'
     };
     setIsSyncing(true);
     try {
@@ -307,85 +296,80 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans pb-24 select-none">
-      {/* HEADER */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50 px-5 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-32 select-none">
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-50 px-6 py-5 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-100">
-            <Package size={20} />
+          <div className="bg-indigo-600 text-white p-2.5 rounded-2xl shadow-lg shadow-indigo-100">
+            <Package size={22} />
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight">Kiệt Inventory</h1>
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">v6.0 Lite Edition</p>
+            <h1 className="text-base font-black tracking-tight leading-none text-slate-900">Kiệt Inventory</h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5">v6.0 Lite Edition</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-green-50 px-2 py-1 rounded-full">
-           <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></span>
-           <span className="text-[9px] font-bold text-green-700 uppercase">Live</span>
+        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+           <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}></span>
+           <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">Live</span>
         </div>
       </header>
 
-      {/* TOAST STATUS */}
       {status && (
-        <div className={`fixed top-20 left-4 right-4 z-[60] py-4 px-5 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${
-          status.type === 'success' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-red-500 border-red-400 text-white'
+        <div className={`fixed top-24 left-6 right-6 z-[60] py-4.5 px-6 rounded-[1.25rem] shadow-2xl border flex items-center gap-3.5 animate-in fade-in slide-in-from-top-4 duration-300 ${
+          status.type === 'success' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-rose-600 border-rose-500 text-white'
         }`}>
-          {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+          {status.type === 'success' ? <CheckCircle2 size={22} /> : <AlertCircle size={22} />}
           <span className="text-sm font-bold tracking-tight">{status.message}</span>
         </div>
       )}
 
-      {/* MODAL RESET */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs overflow-hidden p-6 text-center animate-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Lock size={28} />
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-5 border border-rose-100">
+              <Lock size={32} />
             </div>
-            <h3 className="text-lg font-bold">Xác nhận xóa kho</h3>
-            <p className="text-xs text-gray-400 mt-1">Hành động này không thể hoàn tác.</p>
+            <h3 className="text-xl font-black text-slate-900">Xóa toàn bộ kho?</h3>
+            <p className="text-xs text-slate-400 mt-2 leading-relaxed">Dữ liệu sẽ được làm sạch trên hệ thống Cloud và không thể khôi phục.</p>
             <input 
               type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Nhập mã pin" className="w-full mt-5 p-4 bg-gray-50 border-none rounded-2xl text-center text-xl tracking-[0.3em] focus:ring-2 focus:ring-red-500 outline-none"
+              placeholder="••••••" className="w-full mt-6 p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center text-2xl tracking-[0.5em] focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all"
             />
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <button onClick={() => {setShowResetConfirm(false); setPasswordInput('');}} className="py-3.5 bg-gray-50 text-gray-500 rounded-2xl text-xs font-bold uppercase">Hủy</button>
-              <button onClick={handleReset} className="py-3.5 bg-red-500 text-white rounded-2xl text-xs font-bold uppercase">Xóa hết</button>
+            <div className="grid grid-cols-2 gap-4 mt-8">
+              <button onClick={() => {setShowResetConfirm(false); setPasswordInput('');}} className="py-4 bg-slate-100 text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 transition-transform">Hủy bỏ</button>
+              <button onClick={handleReset} className="py-4 bg-rose-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-rose-100 active:scale-95 transition-transform">Xóa ngay</button>
             </div>
           </div>
         </div>
       )}
 
-      <main className="max-w-md mx-auto p-5 space-y-6">
-        
-        {/* VIEW: SCAN / NHẬP LIỆU */}
+      <main className="max-w-md mx-auto p-6 space-y-8">
         {view === 'scan' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="bg-gray-100 p-1.5 rounded-2xl flex text-[10px] font-bold uppercase">
-              <button onClick={() => setIsAdjustment(false)} className={`flex-1 py-3 rounded-xl transition-all ${!isAdjustment ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>Nhập Hàng</button>
-              <button onClick={() => setIsAdjustment(true)} className={`flex-1 py-3 rounded-xl transition-all ${isAdjustment ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400'}`}>Kiểm Kê</button>
+          <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="bg-slate-200 p-1.5 rounded-[1.5rem] flex text-[10px] font-black uppercase tracking-widest">
+              <button onClick={() => setIsAdjustment(false)} className={`flex-1 py-4 rounded-2xl transition-all duration-300 ${!isAdjustment ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Nhập Hàng</button>
+              <button onClick={() => setIsAdjustment(true)} className={`flex-1 py-4 rounded-2xl transition-all duration-300 ${isAdjustment ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500'}`}>Kiểm Kê</button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="relative">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block px-1">Tìm món hàng</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block px-1">Tìm kiếm sản phẩm</label>
                 <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors" size={20} />
                   <input 
                     type="text" value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setShowSuggestions(true);}} 
-                    className="w-full pl-12 pr-4 py-4.5 bg-gray-50 rounded-2xl text-sm font-bold border-none focus:ring-2 focus:ring-indigo-600 outline-none shadow-sm transition-all"
-                    placeholder="Tên hoặc mã SKU..."
+                    className="w-full pl-14 pr-6 py-5.5 bg-white rounded-[1.5rem] text-sm font-bold border-2 border-slate-50 focus:border-indigo-500 focus:ring-0 outline-none shadow-sm transition-all placeholder:text-slate-300"
+                    placeholder="Tên món hoặc SKU..."
                   />
                 </div>
                 {showSuggestions && filteredProducts.length > 0 && (
-                  <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 max-h-72 overflow-y-auto animate-in slide-in-from-top-2">
+                  <div className="absolute left-0 right-0 mt-3 bg-white border border-slate-100 rounded-[1.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] z-50 max-h-80 overflow-y-auto animate-in slide-in-from-top-4 duration-300">
                     {filteredProducts.map((p, idx) => (
-                      <button key={idx} onClick={() => selectProduct(p)} className="w-full p-4 text-left border-b border-gray-50 hover:bg-indigo-50 flex justify-between items-center active:scale-[0.98] transition-transform">
+                      <button key={idx} onClick={() => selectProduct(p)} className="w-full p-5 text-left border-b border-slate-50 hover:bg-slate-50 flex justify-between items-center active:scale-[0.98] transition-all">
                         <div className="flex-1">
-                          <div className="text-xs font-bold text-gray-800">{p.name}</div>
-                          <div className="text-[10px] text-gray-400 mt-1 font-mono">{p.sku}</div>
+                          <div className="text-sm font-bold text-slate-800">{p.name}</div>
+                          <div className="text-[10px] text-slate-400 mt-2 font-mono tracking-tighter">{p.sku}</div>
                         </div>
-                        <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold uppercase">{p.unit}</span>
+                        <span className="text-[10px] bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-xl font-black uppercase">{p.unit}</span>
                       </button>
                     ))}
                   </div>
@@ -393,86 +377,88 @@ export default function App() {
               </div>
 
               {name && (
-                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex justify-between items-center animate-in zoom-in-95 duration-300">
-                  <div className="flex-1 pr-4">
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Đã chọn sản phẩm</span>
-                    <span className="text-xs font-bold text-indigo-900 leading-tight">{name}</span>
+                <div className="bg-indigo-600 rounded-[1.5rem] p-6 flex justify-between items-center animate-in zoom-in-95 duration-400 shadow-xl shadow-indigo-100 text-white">
+                  <div className="flex-1 pr-6">
+                    <span className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] block mb-2">Đang chọn</span>
+                    <span className="text-sm font-black leading-snug">{name}</span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-mono text-indigo-600 bg-white px-2 py-1 rounded-lg shadow-sm border border-indigo-100">{sku}</span>
+                  <div className="shrink-0 text-right">
+                    <span className="text-[10px] font-mono text-white bg-indigo-500/50 px-3 py-1.5 rounded-xl border border-indigo-400/30">{sku}</span>
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Số lượng</label>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Số lượng</label>
                   <input 
                     type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} 
-                    className="w-full p-4 bg-gray-50 rounded-2xl text-center text-3xl font-black text-indigo-600 border-none focus:ring-2 focus:ring-indigo-600 outline-none shadow-sm placeholder:text-gray-200"
+                    className="w-full p-6 bg-white rounded-[1.5rem] text-center text-4xl font-black text-indigo-600 border-2 border-slate-50 focus:border-indigo-500 focus:ring-0 outline-none shadow-sm transition-all"
                     placeholder="0"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Hạn dùng</label>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Hạn sử dụng</label>
                   <input 
                     type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} 
-                    className="w-full p-4 bg-gray-50 rounded-2xl text-[11px] font-bold border-none focus:ring-2 focus:ring-indigo-600 outline-none shadow-sm"
+                    className="w-full p-6 bg-white rounded-[1.5rem] text-[12px] font-black border-2 border-slate-50 focus:border-indigo-500 focus:ring-0 outline-none shadow-sm transition-all uppercase"
                   />
                 </div>
               </div>
 
               <button 
                 onClick={handleSave} disabled={isSyncing} 
-                className={`w-full py-5 rounded-2xl flex items-center justify-center gap-3 transition-all font-bold text-xs uppercase tracking-[0.2em] shadow-xl ${
-                  isSyncing ? 'bg-gray-200 text-gray-400' : (isAdjustment ? 'bg-orange-500 text-white shadow-orange-100' : 'bg-indigo-600 text-white shadow-indigo-100')
-                } active:scale-[0.97]`}
+                className={`w-full py-6 rounded-[1.5rem] flex items-center justify-center gap-4 transition-all duration-300 font-black text-xs uppercase tracking-[0.3em] shadow-2xl active:scale-[0.96] ${
+                  isSyncing ? 'bg-slate-200 text-slate-400' : (isAdjustment ? 'bg-amber-500 text-white shadow-amber-100' : 'bg-indigo-600 text-white shadow-indigo-200')
+                }`}
               >
-                {isSyncing ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
-                <span>{isSyncing ? 'Đang gửi...' : 'Xác nhận lưu'}</span>
+                {isSyncing ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}
+                <span>{isSyncing ? 'Processing...' : 'Lưu giao dịch'}</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* VIEW: SUMMARY / TỒN KHO */}
         {view === 'summary' && (
-          <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
-            <div className="flex justify-between items-center px-1">
-              <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2"><Database size={14} /> Tổng Tồn Thực Tế</h2>
-              <button onClick={() => setShowResetConfirm(true)} className="text-[9px] font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl border border-red-100 uppercase">Dọn dẹp kho</button>
+          <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
+            <div className="flex justify-between items-end px-1">
+              <div>
+                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 mb-1.5"><Database size={16} /> Kiểm kê tồn</h2>
+                <p className="text-[10px] font-bold text-slate-300 italic uppercase tracking-tighter">Real-time Cloud Sync</p>
+              </div>
+              <button onClick={() => setShowResetConfirm(true)} className="text-[10px] font-black text-rose-500 bg-rose-50 px-4 py-2.5 rounded-2xl border border-rose-100 uppercase tracking-widest active:scale-95 transition-transform">Xóa kho</button>
             </div>
             
             {inventorySummary.length === 0 ? (
-              <div className="py-24 text-center text-gray-300 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
-                <Package size={48} className="mx-auto mb-4 opacity-10" />
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Kho đang trống</p>
+              <div className="py-32 text-center text-slate-300 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100 shadow-inner animate-in fade-in duration-700">
+                <Package size={64} className="mx-auto mb-6 opacity-10" />
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Kho đang trống</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {inventorySummary.map((item, idx) => (
-                  <div key={idx} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2" style={{animationDelay: `${idx * 50}ms`}}>
-                    <div className="p-5 flex justify-between items-start bg-gray-50/30">
-                      <div className="flex-1 pr-4">
-                        <h3 className="font-bold text-gray-900 text-xs leading-tight">{item.name}</h3>
-                        <p className="text-[9px] text-gray-400 font-mono mt-1.5 uppercase tracking-wider">{item.sku}</p>
+                  <div key={idx} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500" style={{animationDelay: `${idx * 60}ms`}}>
+                    <div className="p-6 flex justify-between items-start bg-slate-50/50">
+                      <div className="flex-1 pr-6">
+                        <h3 className="font-black text-slate-900 text-[13px] leading-tight">{item.name}</h3>
+                        <p className="text-[10px] text-slate-400 font-mono mt-2 uppercase tracking-widest">{item.sku}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="flex items-baseline gap-1 justify-end">
-                           <span className="text-2xl font-black tracking-tight text-indigo-600">{item.totalQty}</span>
-                           <span className="text-[10px] text-gray-400 font-bold uppercase">{item.unit}</span>
+                        <div className="flex items-baseline gap-1.5 justify-end">
+                           <span className="text-3xl font-black tracking-tighter text-indigo-600">{item.totalQty}</span>
+                           <span className="text-[10px] text-slate-400 font-black uppercase">{item.unit}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white px-2 pb-2">
-                      <div className="bg-white rounded-2xl overflow-hidden border border-gray-50">
+                    <div className="bg-white p-3 pt-0">
+                      <div className="bg-slate-50/50 rounded-2xl overflow-hidden border border-slate-50">
                         {Object.entries(item.batches).sort().map(([date, qty], bIdx) => (
-                          <div key={bIdx} className="p-3.5 flex justify-between items-center text-[11px] border-b last:border-0 border-gray-50">
-                            <div className={`flex items-center gap-2.5 ${getBatchColor(date)}`}>
-                              <div className="p-1 bg-current opacity-10 rounded-lg"><Clock size={12} /></div>
-                              <span className="font-bold">{date === "Không có Date" ? "Chưa có HSD" : new Date(date).toLocaleDateString('vi-VN')}</span>
+                          <div key={bIdx} className="p-4 flex justify-between items-center text-[11px] border-b last:border-0 border-slate-100/50">
+                            <div className="flex items-center gap-3 text-slate-600">
+                              <div className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-100"><Clock size={12} className="text-slate-400" /></div>
+                              <span className="font-black tracking-tight">{date === "Không có Date" ? "Chưa có HSD" : new Date(date).toLocaleDateString('vi-VN')}</span>
                             </div>
-                            <span className="font-black text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">{qty}</span>
+                            <span className="font-black text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">{qty} {item.unit}</span>
                           </div>
                         ))}
                       </div>
@@ -484,29 +470,28 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW: HISTORY / NHẬT KÝ */}
         {view === 'history' && (
-          <div className="space-y-5 animate-in slide-in-from-left-4 duration-300">
-             <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2"><List size={14} /> Nhật Ký Hoạt Động</h2>
-             <div className="space-y-3 pb-8">
+          <div className="space-y-6 animate-in slide-in-from-left-8 duration-500">
+             <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] px-1 flex items-center gap-2"><List size={16} /> Lịch sử hoạt động</h2>
+             <div className="space-y-4 pb-12">
               {logs.length === 0 ? (
-                 <div className="text-center py-20 text-gray-300 italic text-xs">Chưa ghi nhận giao dịch nào.</div>
+                 <div className="text-center py-32 text-slate-300 italic text-sm font-medium">Danh sách nhật ký trống.</div>
               ) : (
-                logs.map((log, idx) => (
-                  <div key={log.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center animate-in fade-in duration-300">
-                    <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
-                          log.loai === 'KiemKe' ? 'bg-orange-100 text-orange-600' : 'bg-indigo-100 text-indigo-600'
+                logs.map((log) => (
+                  <div key={log.id} className="bg-white p-5 rounded-[1.5rem] border border-slate-50 shadow-sm flex justify-between items-center animate-in fade-in duration-400">
+                    <div className="flex-1 pr-6">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className={`text-[8px] px-2.5 py-1 rounded-lg font-black uppercase tracking-[0.15em] ${
+                          log.loai === 'KiemKe' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'
                         }`}>
-                          {log.loai === 'KiemKe' ? 'Kiểm' : 'Nhập'}
+                          {log.loai === 'KiemKe' ? 'Kiểm kê' : 'Nhập hàng'}
                         </span>
-                        <span className="text-[9px] text-gray-300 font-medium">{log.thoi_gian.split(',')[0]}</span>
+                        <span className="text-[10px] text-slate-300 font-bold font-mono uppercase tracking-tighter">{log.thoi_gian}</span>
                       </div>
-                      <h4 className="text-xs font-bold text-gray-800 line-clamp-1">{log.ten_san_pham}</h4>
+                      <h4 className="text-[13px] font-black text-slate-800 line-clamp-1 leading-none">{log.ten_san_pham}</h4>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-lg font-black ${log.loai === 'KiemKe' ? 'text-orange-500' : 'text-indigo-600'}`}>
+                    <div className="shrink-0">
+                      <span className={`text-xl font-black ${log.loai === 'KiemKe' ? 'text-amber-500' : 'text-indigo-600'}`}>
                         {log.loai === 'KiemKe' ? '' : '+'}{log.so_luong}
                       </span>
                     </div>
@@ -518,22 +503,28 @@ export default function App() {
         )}
       </main>
 
-      {/* BOTTOM NAV */}
-      <nav className="fixed bottom-6 left-6 right-6 bg-white/90 backdrop-blur-xl border border-gray-100 rounded-3xl p-2 flex justify-around items-center z-40 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
-        <button onClick={() => setView('scan')} className={`flex flex-col items-center gap-1.5 flex-1 py-3 rounded-2xl transition-all duration-300 ${view === 'scan' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 translate-y-[-4px]' : 'text-gray-400 hover:text-indigo-400'}`}>
-          <Camera size={20} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Nhập</span>
+      <nav className="fixed bottom-8 left-8 right-8 bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-[2.2rem] p-2.5 flex justify-around items-center z-40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]">
+        <button onClick={() => setView('scan')} className={`flex flex-col items-center gap-2 flex-1 py-4.5 rounded-[1.8rem] transition-all duration-500 ${view === 'scan' ? 'bg-white text-slate-900 shadow-xl translate-y-[-6px]' : 'text-slate-400 hover:text-white/70'}`}>
+          <Camera size={22} strokeWidth={view === 'scan' ? 3 : 2} />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Nhập</span>
         </button>
-        <button onClick={() => setView('summary')} className={`flex flex-col items-center gap-1.5 flex-1 py-3 rounded-2xl transition-all duration-300 ${view === 'summary' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 translate-y-[-4px]' : 'text-gray-400 hover:text-indigo-400'}`}>
-          <LayoutDashboard size={20} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Kho</span>
+        <button onClick={() => setView('summary')} className={`flex flex-col items-center gap-2 flex-1 py-4.5 rounded-[1.8rem] transition-all duration-500 ${view === 'summary' ? 'bg-white text-slate-900 shadow-xl translate-y-[-6px]' : 'text-slate-400 hover:text-white/70'}`}>
+          <LayoutDashboard size={22} strokeWidth={view === 'summary' ? 3 : 2} />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Tồn</span>
         </button>
-        <button onClick={() => setView('history')} className={`flex flex-col items-center gap-1.5 flex-1 py-3 rounded-2xl transition-all duration-300 ${view === 'history' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 translate-y-[-4px]' : 'text-gray-400 hover:text-indigo-400'}`}>
-          <List size={20} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Sử</span>
+        <button onClick={() => setView('history')} className={`flex flex-col items-center gap-2 flex-1 py-4.5 rounded-[1.8rem] transition-all duration-500 ${view === 'history' ? 'bg-white text-slate-900 shadow-xl translate-y-[-6px]' : 'text-slate-400 hover:text-white/70'}`}>
+          <List size={22} strokeWidth={view === 'history' ? 3 : 2} />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Sử</span>
         </button>
       </nav>
     </div>
   );
 }
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 
