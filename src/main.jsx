@@ -107,7 +107,8 @@ function App() {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ loai: "GetProducts" })
+                body: JSON.stringify({ loai: "GetProducts" }),
+                credentials: 'omit'
             });
             const data = await response.json();
             setAvailableProducts(data);
@@ -124,7 +125,8 @@ function App() {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ loai: "GetData" })
+                body: JSON.stringify({ loai: "GetData" }),
+                credentials: 'omit'
             });
             if (!response.ok) throw new Error("Network response was not ok");
             const data = await response.json();
@@ -226,7 +228,8 @@ function App() {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ loai: "Login", username, password })
+            body: JSON.stringify({ loai: "Login", username, password }),
+            credentials: 'omit'
         });
         const data = await response.json();
 
@@ -272,7 +275,8 @@ function App() {
                     username: user.username,
                     oldPassword: cpOld,
                     newPassword: cpNew
-                })
+                }),
+                credentials: 'omit'
             });
             const res = await response.json();
             if (res.status === 'success') {
