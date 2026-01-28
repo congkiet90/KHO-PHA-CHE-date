@@ -383,7 +383,7 @@ function App() {
                 {/* Header Mobile */}
                 <div className="md:hidden flex items-center justify-between mb-6 pt-2">
                     <div className="flex items-center gap-3">
-                        <img src="/src/assets/logo.png" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-black/10" />
+                        <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-black/10" />
                         <div>
                             <h1 className="font-bold text-lg text-black tracking-tight leading-none">Kho Pha Chế</h1>
                             <p className="text-xs text-stone-500 font-medium">Xin chào, {String(user?.name || 'User').split(' ').pop()}</p>
