@@ -19,7 +19,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyAZHsrSMjBJs_KvsrP-5-7
 // In-memory fallback storage for when localStorage is unavailable
 const memoryStorage = {};
 
-const isStorageAvailable = () => {
+// Cache the storage availability check (only run once at startup)
+const storageAvailable = (() => {
     try {
         const testKey = '__storage_test__';
         localStorage.setItem(testKey, testKey);
@@ -27,16 +28,16 @@ const isStorageAvailable = () => {
         return true;
     } catch (e) {
         // Safari Private Mode, storage quota exceeded, or cookies blocked
+        console.warn('localStorage not available, using memory fallback');
         return false;
     }
-};
+})();
 
 const safeGetItem = (key) => {
-    if (isStorageAvailable()) {
+    if (storageAvailable) {
         try {
             return localStorage.getItem(key);
         } catch (e) {
-            console.warn('localStorage read failed:', e);
             return memoryStorage[key] || null;
         }
     }
@@ -44,27 +45,20 @@ const safeGetItem = (key) => {
 };
 
 const safeSetItem = (key, value) => {
-    // Always save to memory as backup
     memoryStorage[key] = value;
-
-    if (isStorageAvailable()) {
+    if (storageAvailable) {
         try {
             localStorage.setItem(key, value);
-        } catch (e) {
-            console.warn('localStorage write failed:', e);
-        }
+        } catch (e) { /* ignore */ }
     }
 };
 
 const safeRemoveItem = (key) => {
     delete memoryStorage[key];
-
-    if (isStorageAvailable()) {
+    if (storageAvailable) {
         try {
             localStorage.removeItem(key);
-        } catch (e) {
-            console.warn('localStorage remove failed:', e);
-        }
+        } catch (e) { /* ignore */ }
     }
 };
 
