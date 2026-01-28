@@ -15,10 +15,63 @@ import ManageProducts from './pages/ManageProducts';
 // --- CONFIG ---
 const API_URL = "https://script.google.com/macros/s/AKfycbyAZHsrSMjBJs_KvsrP-5-7YiHtke2BT8usL656VZjc2RNrCow8FGLaMJtjeAxnQ7J8/exec";
 
+// --- STORAGE HELPERS (Safari-safe) ---
+// In-memory fallback storage for when localStorage is unavailable
+const memoryStorage = {};
+
+const isStorageAvailable = () => {
+    try {
+        const testKey = '__storage_test__';
+        localStorage.setItem(testKey, testKey);
+        localStorage.removeItem(testKey);
+        return true;
+    } catch (e) {
+        // Safari Private Mode, storage quota exceeded, or cookies blocked
+        return false;
+    }
+};
+
+const safeGetItem = (key) => {
+    if (isStorageAvailable()) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.warn('localStorage read failed:', e);
+            return memoryStorage[key] || null;
+        }
+    }
+    return memoryStorage[key] || null;
+};
+
+const safeSetItem = (key, value) => {
+    // Always save to memory as backup
+    memoryStorage[key] = value;
+
+    if (isStorageAvailable()) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            console.warn('localStorage write failed:', e);
+        }
+    }
+};
+
+const safeRemoveItem = (key) => {
+    delete memoryStorage[key];
+
+    if (isStorageAvailable()) {
+        try {
+            localStorage.removeItem(key);
+        } catch (e) {
+            console.warn('localStorage remove failed:', e);
+        }
+    }
+};
+
 function App() {
     // --- AUTHENTICATION STATE ---
     const [user, setUser] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('currentUser')); } catch { return null; }
+        try { return JSON.parse(safeGetItem('currentUser')); } catch { return null; }
     });
 
     const [view, setView] = useState('dashboard');
@@ -36,7 +89,7 @@ function App() {
     // Logs & Data
     const [logs, setLogs] = useState(() => {
         try {
-            const savedLogs = localStorage.getItem('inventory_logs');
+            const savedLogs = safeGetItem('inventory_logs');
             return savedLogs ? JSON.parse(savedLogs) : [];
         } catch (e) { return []; }
     });
@@ -49,7 +102,7 @@ function App() {
     const [filteredProducts, setFilteredProducts] = useState([]);
 
     useEffect(() => {
-        localStorage.setItem('inventory_logs', JSON.stringify(logs));
+        safeSetItem('inventory_logs', JSON.stringify(logs));
     }, [logs]);
 
     // Data Fetching: Products
@@ -185,7 +238,7 @@ function App() {
         if (data.status === 'success') {
             const userData = { username: username, role: data.role, name: data.name };
             setUser(userData);
-            localStorage.setItem('currentUser', JSON.stringify(userData));
+            safeSetItem('currentUser', JSON.stringify(userData));
             showStatus('success', `Chào mừng trở lại, ${data.name}!`);
         } else {
             throw new Error(data.message);
@@ -195,7 +248,7 @@ function App() {
     const handleLogout = () => {
         if (confirm("Bạn có chắc muốn đăng xuất?")) {
             setUser(null);
-            localStorage.removeItem('currentUser');
+            safeRemoveItem('currentUser');
             setLogs([]); // Clear sensitive data
             setView('dashboard');
         }
