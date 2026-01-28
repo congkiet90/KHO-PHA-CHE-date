@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
-import { CheckCircle2, AlertCircle, Loader2, Lock, Sparkles, LayoutGrid, Plus, Box, User, LogOut, Key, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Lock, Sparkles, LayoutGrid, Plus, Box, User, LogOut, Key, X, Menu, Users, Package, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Components
@@ -94,6 +94,7 @@ function App() {
     const [searchTerm, setSearchTerm] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [filteredProducts, setFilteredProducts] = useState([]);
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
 
     useEffect(() => {
         safeSetItem('inventory_logs', JSON.stringify(logs));
@@ -524,11 +525,59 @@ function App() {
             </main>
 
             {/* Mobile Bottom Nav */}
-            <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/20 rounded-full shadow-2xl shadow-black/10 px-8 py-4 flex items-center gap-8 z-50">
+            <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/20 rounded-full shadow-2xl shadow-black/10 px-6 py-4 flex items-center gap-6 z-50">
                 <button onClick={() => setView('dashboard')} className={`transition-colors ${view === 'dashboard' ? 'text-black' : 'text-stone-400'}`}><LayoutGrid size={24} strokeWidth={2.5} /></button>
-                <button onClick={() => setView('scan')} className={`p-4 rounded-full -mt-12 border-[6px] border-[#F5F5F7] shadow-xl ${view === 'scan' ? 'bg-black text-white' : 'bg-stone-800 text-white'}`}><Plus size={28} /></button>
                 <button onClick={() => setView('summary')} className={`transition-colors ${view === 'summary' ? 'text-black' : 'text-stone-400'}`}><Box size={24} strokeWidth={2.5} /></button>
+                <button onClick={() => setView('scan')} className={`p-4 rounded-full -mt-12 border-[6px] border-[#F5F5F7] shadow-xl ${view === 'scan' ? 'bg-black text-white' : 'bg-stone-800 text-white'}`}><Plus size={28} /></button>
+                <button onClick={() => setView('history')} className={`transition-colors ${view === 'history' ? 'text-black' : 'text-stone-400'}`}><History size={24} strokeWidth={2.5} /></button>
+                <button onClick={() => setShowMobileMenu(!showMobileMenu)} className={`transition-colors ${showMobileMenu ? 'text-black' : 'text-stone-400'}`}><Menu size={24} strokeWidth={2.5} /></button>
             </nav>
+
+            {/* Mobile Menu Dropdown */}
+            <AnimatePresence>
+                {showMobileMenu && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        className="md:hidden fixed bottom-28 right-4 bg-white rounded-2xl shadow-2xl shadow-black/20 border border-black/5 p-2 z-50 min-w-[180px]"
+                    >
+                        {(user?.role === 'admin' || user?.role === 'manager') && (
+                            <>
+                                <button
+                                    onClick={() => { setView('manage-products'); setShowMobileMenu(false); }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left ${view === 'manage-products' ? 'bg-emerald-50 text-emerald-700' : 'text-stone-600 hover:bg-stone-50'}`}
+                                >
+                                    <Package size={18} />
+                                    <span className="text-sm font-medium">Sản Phẩm</span>
+                                </button>
+                                <button
+                                    onClick={() => { setView('manage-users'); setShowMobileMenu(false); }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left ${view === 'manage-users' ? 'bg-emerald-50 text-emerald-700' : 'text-stone-600 hover:bg-stone-50'}`}
+                                >
+                                    <Users size={18} />
+                                    <span className="text-sm font-medium">Nhân Sự</span>
+                                </button>
+                                <div className="border-t border-stone-100 my-1"></div>
+                            </>
+                        )}
+                        <button
+                            onClick={() => { setShowChangePassModal(true); setShowMobileMenu(false); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-stone-600 hover:bg-stone-50"
+                        >
+                            <Key size={18} />
+                            <span className="text-sm font-medium">Đổi Mật Khẩu</span>
+                        </button>
+                        <button
+                            onClick={() => { handleLogout(); setShowMobileMenu(false); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-red-500 hover:bg-red-50"
+                        >
+                            <LogOut size={18} />
+                            <span className="text-sm font-medium">Đăng Xuất</span>
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Change Password Modal */}
             {showChangePassModal && (
