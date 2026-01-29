@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+borimport React, { useState, useEffect } from 'react';
 import { Loader2, Plus, Package, Search } from 'lucide-react';
 
 const ManageProducts = ({ API_URL, showStatus }) => {
@@ -9,7 +9,7 @@ const ManageProducts = ({ API_URL, showStatus }) => {
     const [sku, setSku] = useState('');
     const [name, setName] = useState('');
     const [unit, setUnit] = useState('');
-    const [category, setCategory] = useState('bar');
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -45,7 +45,7 @@ const ManageProducts = ({ API_URL, showStatus }) => {
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({
                     loai: "AddProduct",
-                    sku, name, unit, category
+                    sku, name, unit
                 })
             });
             const res = await response.json();
@@ -107,16 +107,7 @@ const ManageProducts = ({ API_URL, showStatus }) => {
                                     placeholder="vd: KG, HOP, CAI"
                                 />
                             </div>
-                            <div>
-                                <label className="text-xs font-bold uppercase text-stone-400 ml-1">Phân Loại</label>
-                                <select
-                                    value={category} onChange={e => setCategory(e.target.value)}
-                                    className="w-full p-3 bg-stone-50 rounded-xl border-none focus:ring-2 focus:ring-black/10 outline-none font-medium text-black"
-                                >
-                                    <option value="bar">Pha Chế (Bar)</option>
-                                    <option value="retail">Bán Lẻ (Retail)</option>
-                                </select>
-                            </div>
+
 
                             <button
                                 disabled={isSubmitting || !sku || !name || !unit}
@@ -152,7 +143,6 @@ const ManageProducts = ({ API_URL, showStatus }) => {
                                         <th className="px-6 py-3">SKU</th>
                                         <th className="px-6 py-3">Tên Sản Phẩm</th>
                                         <th className="px-6 py-3 text-center">ĐVT</th>
-                                        <th className="px-6 py-3 text-center">Loại</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-black/5">
@@ -161,16 +151,10 @@ const ManageProducts = ({ API_URL, showStatus }) => {
                                             <td className="px-6 py-3 text-stone-500 font-mono text-xs">{p.sku}</td>
                                             <td className="px-6 py-3 font-medium text-black text-sm">{p.name}</td>
                                             <td className="px-6 py-3 text-center text-xs text-stone-500 lowercase">{p.unit}</td>
-                                            <td className="px-6 py-3 text-center">
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${p.category === 'retail' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-blue-50 text-blue-700 border-blue-100'
-                                                    }`}>
-                                                    {p.category === 'retail' ? 'Bán Lẻ' : 'Pha Chế'}
-                                                </span>
-                                            </td>
                                         </tr>
                                     ))}
                                     {filteredProducts.length === 0 && !loading && (
-                                        <tr className="text-center"><td colSpan={4} className="py-10 text-stone-400 text-sm">Không tìm thấy sản phẩm</td></tr>
+                                        <tr className="text-center"><td colSpan={3} className="py-10 text-stone-400 text-sm">Không tìm thấy sản phẩm</td></tr>
                                     )}
                                 </tbody>
                             </table>

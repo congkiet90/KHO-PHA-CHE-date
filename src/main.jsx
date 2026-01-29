@@ -161,22 +161,7 @@ function App() {
         }
     }, [user]);
 
-    // Helper: Identify Category
-    const identifyCategory = (sku, name) => {
-        // First try to find in availableProducts
-        const product = availableProducts.find(p => String(p.sku) === String(sku));
-        if (product && product.category) return product.category;
 
-        // Fallback to name-based logic if product not found (old logs?)
-        if (!name) return 'bar';
-        const n = name.toLowerCase();
-        if (n.includes('cà phê') || n.includes('g7') || n.includes('legend') ||
-            n.includes('hộp quà') || n.includes('bình giữ nhiệt') || n.includes('ly sứ') ||
-            n.includes('bút') || n.includes('sách') || n.includes('túi vải') || n.includes('phin')) {
-            return 'retail';
-        }
-        return 'bar';
-    };
 
     // Summary calculation
     const inventorySummary = useMemo(() => {
@@ -196,7 +181,6 @@ function App() {
                     sku: productSku,
                     name: log.ten_san_pham,
                     unit: prod ? prod.unit : (log.don_vi || ""),
-                    category: identifyCategory(productSku, log.ten_san_pham),
                     totalQty: 0, batches: {}
                 };
             }
@@ -383,19 +367,7 @@ function App() {
         const wsAll = createSheetData(inventorySummary);
         XLSX.utils.book_append_sheet(wb, wsAll, "Tất Cả");
 
-        // Sheet 2: Bar / Pha Chế
-        const barItems = inventorySummary.filter(item => item.category === 'bar');
-        if (barItems.length > 0) {
-            const wsBar = createSheetData(barItems);
-            XLSX.utils.book_append_sheet(wb, wsBar, "Pha Chế");
-        }
 
-        // Sheet 3: Retail / Bán Lẻ
-        const retailItems = inventorySummary.filter(item => item.category === 'retail');
-        if (retailItems.length > 0) {
-            const wsRetail = createSheetData(retailItems);
-            XLSX.utils.book_append_sheet(wb, wsRetail, "Bán Lẻ");
-        }
 
         XLSX.writeFile(wb, `Kho_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };

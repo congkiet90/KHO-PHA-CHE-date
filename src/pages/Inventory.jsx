@@ -2,12 +2,7 @@ import React from 'react';
 import { LayoutGrid, Loader2, Save, X, Box } from 'lucide-react';
 
 const Inventory = ({ inventorySummary, isSyncing, fetchData, handleExport, setShowResetConfirm, handleDelete }) => {
-    const [filterCategory, setFilterCategory] = React.useState('all');
 
-    const filteredInventory = React.useMemo(() => {
-        if (filterCategory === 'all') return inventorySummary;
-        return inventorySummary.filter(item => item.category === filterCategory);
-    }, [inventorySummary, filterCategory]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -36,23 +31,9 @@ const Inventory = ({ inventorySummary, isSyncing, fetchData, handleExport, setSh
                 </div>
             </div>
 
-            {/* Category Filter Tabs */}
-            <div className="flex p-1 bg-stone-200/50 rounded-xl w-full md:w-fit self-start">
-                {['all', 'bar', 'retail'].map((cat) => (
-                    <button
-                        key={cat}
-                        onClick={() => setFilterCategory(cat)}
-                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${filterCategory === cat
-                            ? 'bg-white text-black shadow-sm'
-                            : 'text-stone-500 hover:text-black'
-                            }`}
-                    >
-                        {cat === 'all' ? 'Tất cả' : cat === 'bar' ? 'Pha Chế' : 'Bán Lẻ'}
-                    </button>
-                ))}
-            </div>
 
-            {filteredInventory.length === 0 ? (
+
+            {inventorySummary.length === 0 ? (
                 <div className="py-20 text-center bg-white rounded-[24px] border border-dashed border-stone-200">
                     <div className="w-16 h-16 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Box className="text-stone-300" size={32} />
@@ -74,7 +55,7 @@ const Inventory = ({ inventorySummary, isSyncing, fetchData, handleExport, setSh
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-black/5">
-                                {filteredInventory.map((item, idx) => (
+                                {inventorySummary.map((item, idx) => (
                                     <React.Fragment key={idx}>
                                         {Object.entries(item.batches).sort().map(([date, qty], bIdx) => {
                                             let statusText = "OK";
@@ -97,7 +78,6 @@ const Inventory = ({ inventorySummary, isSyncing, fetchData, handleExport, setSh
                                                     <td className="px-6 py-4 pl-8 font-medium text-black">
                                                         {item.name}
                                                         <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-stone-100 text-stone-500 rounded border border-stone-200 uppercase tracking-wider">{item.category === 'retail' ? 'Bán Lẻ' : 'Pha Chế'}</span>
                                                             <span className="text-[11px] text-stone-400 font-normal font-mono tracking-wide">{item.sku}</span>
                                                         </div>
                                                     </td>
