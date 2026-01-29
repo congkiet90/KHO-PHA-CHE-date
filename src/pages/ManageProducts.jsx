@@ -1,4 +1,4 @@
-borimport React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader2, Plus, Package, Search } from 'lucide-react';
 
 const ManageProducts = ({ API_URL, showStatus }) => {
