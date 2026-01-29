@@ -45,7 +45,7 @@ const Login = ({ onLogin }) => {
                     >
                         <img src="/logo.png" alt="Logo" className="w-20 h-20 rounded-2xl object-cover shadow-xl mx-auto" />
                     </motion.div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Kho Pha Chế</h1>
+                    <h1 className="text-2xl font-bold text-white tracking-tight mb-2">hehehe</h1>
                     <p className="text-slate-400 font-medium text-sm">Đăng nhập để tiếp tục</p>
                 </div>
 

@@ -17,7 +17,7 @@ const Sidebar = ({ currentView, setView, user, onLogout, onChangePasswordClick }
                 <div className="flex items-center gap-3">
                     <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-xl object-cover" />
                     <div>
-                        <h1 className="font-bold text-lg text-white tracking-tight leading-none">Kho Pha Chế</h1>
+                        <h1 className="font-bold text-lg text-white tracking-tight leading-none">hehehe</h1>
                         <p className="text-xs text-slate-400 font-medium mt-0.5">Quản lý tồn kho</p>
                     </div>
                 </div>
