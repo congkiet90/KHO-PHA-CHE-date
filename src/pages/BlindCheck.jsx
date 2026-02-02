@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Search, Save, CheckCircle, Loader2, Package, Calendar, Hash, AlertCircle } from 'lucide-react';
 import DateWheelPicker from '../components/DateWheelPicker';
 
-const BlindCheck = ({ API_URL, products, username, showStatus }) => {
+const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }) => {
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
     const [entries, setEntries] = useState([]);
@@ -119,8 +119,9 @@ const BlindCheck = ({ API_URL, products, username, showStatus }) => {
     };
 
     const filteredProducts = (products || []).filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.sku.includes(searchTerm)
+        p && p.name && p.sku &&
+        (p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.sku.includes(searchTerm))
     );
 
     if (loading) {
