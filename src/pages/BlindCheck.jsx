@@ -120,8 +120,8 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
 
     const filteredProducts = (products || []).filter(p =>
         p && p.name && p.sku &&
-        (p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.sku.includes(searchTerm))
+        (String(p.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(p.sku).includes(searchTerm))
     );
 
     if (loading) {
