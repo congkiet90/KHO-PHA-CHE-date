@@ -565,11 +565,14 @@ function doPost(e) {
         
         var allKeys = Object.keys(entries1).concat(Object.keys(entries2));
         var uniqueKeys = allKeys.filter(function(v, i, a) { return a.indexOf(v) === i; });
-        
+        var checkedSkus = {}; // To track SKUs that have been checked (regardless of HSD)
+
         for (var k = 0; k < uniqueKeys.length; k++) {
             var key = uniqueKeys[k];
             var e1 = entries1[key];
             var e2 = entries2[key];
+            var sku = (e1 || e2).sku;
+            checkedSkus[sku] = true;
             
             if (e1 && e2 && e1.qty === e2.qty) {
                 matches.push({ sku: e1.sku, name: e1.name, hsd: e1.hsd, qty1: e1.qty, qty2: e2.qty });
@@ -583,11 +586,50 @@ function doPost(e) {
                 });
             }
         }
+
+        // --- NEW: DETECT UNCHECKED ITEMS FROM MAIN INVENTORY ---
+        // Get all items from Main Inventory (sheet)
+        var unchecked = [];
+        var invData = sheet.getDataRange().getValues();
+        
+        for (var i = 1; i < invData.length; i++) {
+            var row = invData[i];
+            var iSku = String(row[0]).trim();
+            // Skip empty SKUs or already checked SKUs (at least one HSD variant checked)
+            // Wait, logic: if they checked 'Batch A' but missed 'Batch B', should it report?
+            // Yes. So we should track checked Key (sku+hsd), and compare against main inventory sku+date.
+            // But Main Inventory date format might differ slightly? 
+            // format: values read date as object.
+            
+            if (iSku === "") continue;
+            
+            var iQty = Number(row[3]);
+            if (iQty <= 0) continue; // Only care about items with positive stock
+            
+            var iName = row[1];
+            var iDateVal = row[2];
+            var iDateStr = "";
+            if (iDateVal instanceof Date) iDateStr = Utilities.formatDate(iDateVal, "GMT+7", "yyyy-MM-dd");
+            else iDateStr = String(iDateVal).trim().substring(0, 10);
+            
+            var invKey = iSku + "|" + iDateStr;
+            
+            // Check if this specific SKU+HSD was in entries1 or entries2
+            if (!entries1[invKey] && !entries2[invKey]) {
+                unchecked.push({
+                    sku: iSku,
+                    name: iName,
+                    hsd: iDateStr,
+                    systemQty: iQty
+                });
+            }
+        }
         
         return ContentService.createTextOutput(JSON.stringify({
             status: "success",
             matches: matches,
-            mismatches: mismatches
+            mismatches: mismatches,
+            unchecked: unchecked
         })).setMimeType(ContentService.MimeType.JSON);
     }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Loader2, RefreshCw, BarChart3, AlertTriangle, ArrowRight, RotateCcw, Download } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, RefreshCw, BarChart3, AlertTriangle, ArrowRight, RotateCcw, Download, AlertOctagon } from 'lucide-react';
 
 const BlindCheckResult = ({ API_URL, session, showStatus, onApply, onRecheck }) => {
     const [loading, setLoading] = useState(true);
@@ -136,6 +136,16 @@ const BlindCheckResult = ({ API_URL, session, showStatus, onApply, onRecheck }) 
             XLSX.utils.book_append_sheet(wb, mismatchSheet, 'Mục Sai Lệch');
         }
 
+        // Sheet 4: Unchecked (Items in System but not Checked)
+        if (result.unchecked && result.unchecked.length > 0) {
+            const uncheckedHeaders = ['SKU', 'Tên Sản Phẩm', 'HSD', 'Tồn Hệ Thống', 'Trạng Thái'];
+            const uncheckedData = [uncheckedHeaders, ...result.unchecked.map(u => [
+                u.sku, u.name, u.hsd, u.systemQty, 'BỎ SÓT?'
+            ])];
+            const uncheckedSheet = XLSX.utils.aoa_to_sheet(uncheckedData);
+            XLSX.utils.book_append_sheet(wb, uncheckedSheet, 'Chưa Kiểm');
+        }
+
         XLSX.writeFile(wb, `KiemKhoMu_${session.sessionId.slice(-6)}_${new Date().toISOString().slice(0, 10)}.xlsx`);
         showStatus('success', 'Đã xuất báo cáo Excel');
     };
@@ -191,7 +201,7 @@ const BlindCheckResult = ({ API_URL, session, showStatus, onApply, onRecheck }) 
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className={`rounded-2xl p-5 ${matchPercent === 100 ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' : 'bg-white border border-stone-200'}`}>
                     <p className={`text-sm font-medium ${matchPercent === 100 ? 'text-emerald-100' : 'text-stone-500'}`}>Tỷ lệ khớp</p>
                     <p className={`text-3xl font-bold mt-1 ${matchPercent === 100 ? 'text-white' : 'text-black'}`}>{matchPercent}%</p>
@@ -212,7 +222,60 @@ const BlindCheckResult = ({ API_URL, session, showStatus, onApply, onRecheck }) 
                     </div>
                     <p className="text-3xl font-bold text-red-700 mt-1">{mismatchCount}</p>
                 </div>
+
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5">
+                    <div className="flex items-center gap-2">
+                        <AlertOctagon size={18} className="text-orange-600" />
+                        <p className="text-sm font-medium text-orange-700">Chưa kiểm</p>
+                    </div>
+                    <p className="text-3xl font-bold text-orange-700 mt-1">{result.unchecked ? result.unchecked.length : 0}</p>
+                </div>
             </div>
+
+            {/* Unchecked Items Table (Warning) */}
+            {result.unchecked && result.unchecked.length > 0 && (
+                <div className="bg-white rounded-[24px] shadow-sm border border-orange-200 overflow-hidden">
+                    <div className="p-4 bg-orange-50 border-b border-orange-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <AlertOctagon size={18} className="text-orange-600" />
+                            <h3 className="font-bold text-orange-800">Hàng có trong kho nhưng CHƯA KIỂM ({result.unchecked.length})</h3>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-orange-50/50 text-xs font-bold uppercase text-orange-700 border-b border-orange-100">
+                                <tr>
+                                    <th className="px-6 py-3">Sản phẩm</th>
+                                    <th className="px-6 py-3 text-center">HSD</th>
+                                    <th className="px-6 py-3 text-center">Tồn Hệ Thống</th>
+                                    <th className="px-6 py-3 text-center">Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-orange-100">
+                                {result.unchecked.map((u, idx) => (
+                                    <tr key={idx} className="hover:bg-orange-50/50">
+                                        <td className="px-6 py-4">
+                                            <p className="font-medium text-black">{u.name}</p>
+                                            <p className="text-xs text-stone-400 font-mono">{u.sku}</p>
+                                        </td>
+                                        <td className="px-6 py-4 text-center text-sm">
+                                            {u.hsd ? new Date(u.hsd).toLocaleDateString('vi-VN') : '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="font-bold text-stone-700">{u.systemQty}</span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">
+                                                BỎ SÓT?
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Mismatches Table */}
             {mismatchCount > 0 && (

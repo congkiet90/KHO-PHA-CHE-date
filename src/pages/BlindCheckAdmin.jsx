@@ -173,6 +173,16 @@ const BlindCheckAdmin = ({ API_URL, showStatus }) => {
                 XLSX.utils.book_append_sheet(wb, mismatchSheet, 'Mục Sai Lệch');
             }
 
+            // Sheet 5: Unchecked (Items in System but not Checked)
+            if (result.unchecked && result.unchecked.length > 0) {
+                const uncheckedHeaders = ['SKU', 'Tên Sản Phẩm', 'HSD', 'Tồn Hệ Thống', 'Trạng Thái'];
+                const uncheckedData = [uncheckedHeaders, ...result.unchecked.map(u => [
+                    u.sku, u.name, u.hsd, u.systemQty, 'BỎ SÓT?'
+                ])];
+                const uncheckedSheet = XLSX.utils.aoa_to_sheet(uncheckedData);
+                XLSX.utils.book_append_sheet(wb, uncheckedSheet, 'Chưa Kiểm');
+            }
+
             XLSX.writeFile(wb, `KiemKhoMu_${session.sessionId.slice(-6)}_${new Date().toISOString().slice(0, 10)}.xlsx`);
             showStatus('success', 'Đã xuất báo cáo Excel');
         } catch (err) {
