@@ -118,7 +118,7 @@ const BlindCheck = ({ API_URL, products, username, showStatus }) => {
         setMarking(false);
     };
 
-    const filteredProducts = products.filter(p =>
+    const filteredProducts = (products || []).filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.sku.includes(searchTerm)
     );
