@@ -241,6 +241,18 @@ function doPost(e) {
       sessionSheet.getRange("A1:G1").setFontWeight("bold").setBackground("#34a853").setFontColor("#ffffff");
     }
 
+    // --- STORE SCOPE LIST (Hang dang co o quan) ---
+    var scopeSheet = ss.getSheetByName("DANH_SACH_KHO");
+    if (!scopeSheet) {
+      scopeSheet = ss.insertSheet("DANH_SACH_KHO");
+      scopeSheet.appendRow(["SKU", "NAME"]);
+      scopeSheet.getRange("A1:B1").setFontWeight("bold").setBackground("#8e44ad").setFontColor("#ffffff");
+      
+      // Auto-seed from PRODUCTS if empty (Optional helper)
+      // For now, leave empty or user can copy paste. 
+      // User request: "tab kho chính... để quản lý cập nhật hàng đang tồn ở quán"
+    }
+
     // --- MAIN INVENTORY SHEET ---
     var sheets = ss.getSheets();
     var sheet = null;
@@ -587,40 +599,34 @@ function doPost(e) {
             }
         }
 
-        // --- NEW: DETECT UNCHECKED ITEMS FROM MAIN INVENTORY ---
-        // Get all items from Main Inventory (sheet)
+        // --- NEW: DETECT UNCHECKED ITEMS FROM SCOPE SHEET (DANH_SACH_KHO) ---
         var unchecked = [];
-        var invData = sheet.getDataRange().getValues();
         
+        // 1. Build map of current System Inventory for Quantity lookup
+        var invData = sheet.getDataRange().getValues();
+        var sysInvMap = {}; // SKU -> Total Qty
         for (var i = 1; i < invData.length; i++) {
-            var row = invData[i];
-            var iSku = String(row[0]).trim();
-            // Skip empty SKUs or already checked SKUs (at least one HSD variant checked)
-            // Wait, logic: if they checked 'Batch A' but missed 'Batch B', should it report?
-            // Yes. So we should track checked Key (sku+hsd), and compare against main inventory sku+date.
-            // But Main Inventory date format might differ slightly? 
-            // format: values read date as object.
+             var iSku = String(invData[i][0]).trim();
+             if (iSku === "") continue;
+             var iQty = Number(invData[i][3]);
+             if (!sysInvMap[iSku]) sysInvMap[iSku] = 0;
+             sysInvMap[iSku] += iQty;
+        }
+
+        // 2. Iterate Scope Sheet (DANH_SACH_KHO)
+        var scopeData = scopeSheet.getDataRange().getValues();
+        for (var i = 1; i < scopeData.length; i++) {
+            var sSku = String(scopeData[i][0]).trim();
+            var sName = scopeData[i][1];
+            if (sSku === "") continue;
             
-            if (iSku === "") continue;
-            
-            var iQty = Number(row[3]);
-            if (iQty <= 0) continue; // Only care about items with positive stock
-            
-            var iName = row[1];
-            var iDateVal = row[2];
-            var iDateStr = "";
-            if (iDateVal instanceof Date) iDateStr = Utilities.formatDate(iDateVal, "GMT+7", "yyyy-MM-dd");
-            else iDateStr = String(iDateVal).trim().substring(0, 10);
-            
-            var invKey = iSku + "|" + iDateStr;
-            
-            // Check if this specific SKU+HSD was in entries1 or entries2
-            if (!entries1[invKey] && !entries2[invKey]) {
+            // Check if this SKU was scanned by anyone (in any session entry)
+            if (!checkedSkus[sSku]) {
                 unchecked.push({
-                    sku: iSku,
-                    name: iName,
-                    hsd: iDateStr,
-                    systemQty: iQty
+                    sku: sSku,
+                    name: sName,
+                    hsd: "", // Scope list doesn't have HSD
+                    systemQty: (sysInvMap[sSku] !== undefined) ? sysInvMap[sSku] : 0
                 });
             }
         }
