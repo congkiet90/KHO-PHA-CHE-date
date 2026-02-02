@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, X, Loader2, Plus, Calendar, DownloadCloud, ClipboardCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
+import DateWheelPicker from '../components/DateWheelPicker';
 
 const ImportExport = ({
     isAdjustment, setIsAdjustment,
@@ -131,15 +132,11 @@ const ImportExport = ({
                     {/* Expiry Date Input */}
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-stone-500 ml-1">Hạn Sử Dụng</label>
-                        <div className="relative">
-                            <input
-                                type="date"
-                                value={expiryDate}
-                                onChange={(e) => setExpiryDate(e.target.value)}
-                                className="w-full pl-12 pr-4 py-4 bg-[#F5F5F7] border border-transparent rounded-2xl text-black placeholder:text-stone-400 focus:bg-white focus:border-stone-300 focus:ring-4 focus:ring-stone-100 transition-all text-lg font-medium outline-none"
-                            />
-                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={20} />
-                        </div>
+                        <DateWheelPicker
+                            value={expiryDate}
+                            onChange={setExpiryDate}
+                            placeholder="Chọn ngày HSD"
+                        />
                     </div>
                 </div>
 

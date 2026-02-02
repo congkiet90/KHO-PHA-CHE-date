@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, Plus, History, Box, LogOut, ShieldCheck, UserCircle, Users, Package, Key, Search } from 'lucide-react';
+import { LayoutGrid, Plus, History, Box, LogOut, ShieldCheck, UserCircle, Users, Package, Key, Search, EyeOff, ClipboardCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Sidebar = ({ currentView, setView, user, onLogout, onChangePasswordClick }) => {
@@ -83,9 +83,37 @@ const Sidebar = ({ currentView, setView, user, onLogout, onChangePasswordClick }
                                 <Users size={18} className={currentView === 'manage-users' ? 'text-white' : 'text-slate-500 group-hover:text-emerald-400'} />
                                 <span className="text-sm font-medium">Nhân Sự</span>
                             </button>
+
+                            <button
+                                onClick={() => setView('blind-check-admin')}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${currentView === 'blind-check-admin'
+                                    ? 'bg-emerald-500 text-white'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                <ClipboardCheck size={18} className={currentView === 'blind-check-admin' ? 'text-white' : 'text-slate-500 group-hover:text-emerald-400'} />
+                                <span className="text-sm font-medium">Kiểm Kho Mù</span>
+                            </button>
                         </div>
                     </div>
                 )}
+
+                {/* Blind Check Section - Available for all users */}
+                <div className="mt-6">
+                    <p className="px-3 text-[10px] font-semibold uppercase text-slate-500 mb-2 tracking-wider">Kiểm Tra Chéo</p>
+                    <div className="space-y-1">
+                        <button
+                            onClick={() => setView('blind-check')}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${currentView === 'blind-check'
+                                ? 'bg-blue-500 text-white'
+                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                }`}
+                        >
+                            <EyeOff size={18} className={currentView === 'blind-check' ? 'text-white' : 'text-slate-500 group-hover:text-blue-400'} />
+                            <span className="text-sm font-medium">Kiểm Kho Mù</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* User Footer */}

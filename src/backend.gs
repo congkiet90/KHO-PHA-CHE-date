@@ -219,6 +219,28 @@ function doPost(e) {
       userSheet.appendRow(["admin", "123", "admin", "Quản Trị Viên"]);
     }
 
+    // --- BLIND CHECK SHEETS SETUP ---
+    var blindCheck1Sheet = ss.getSheetByName("KIEM_KHO_1");
+    if (!blindCheck1Sheet) {
+      blindCheck1Sheet = ss.insertSheet("KIEM_KHO_1");
+      blindCheck1Sheet.appendRow(["SESSION_ID", "SKU", "NAME", "HSD", "QUANTITY", "USER", "CREATED_AT"]);
+      blindCheck1Sheet.getRange("A1:G1").setFontWeight("bold").setBackground("#1a73e8").setFontColor("#ffffff");
+    }
+    
+    var blindCheck2Sheet = ss.getSheetByName("KIEM_KHO_2");
+    if (!blindCheck2Sheet) {
+      blindCheck2Sheet = ss.insertSheet("KIEM_KHO_2");
+      blindCheck2Sheet.appendRow(["SESSION_ID", "SKU", "NAME", "HSD", "QUANTITY", "USER", "CREATED_AT"]);
+      blindCheck2Sheet.getRange("A1:G1").setFontWeight("bold").setBackground("#e8711a").setFontColor("#ffffff");
+    }
+    
+    var sessionSheet = ss.getSheetByName("KIEM_KHO_SESSION");
+    if (!sessionSheet) {
+      sessionSheet = ss.insertSheet("KIEM_KHO_SESSION");
+      sessionSheet.appendRow(["SESSION_ID", "USER_1", "USER_2", "STATUS_1", "STATUS_2", "CREATED_AT", "RESULT"]);
+      sessionSheet.getRange("A1:G1").setFontWeight("bold").setBackground("#34a853").setFontColor("#ffffff");
+    }
+
     // --- MAIN INVENTORY SHEET ---
     var sheets = ss.getSheets();
     var sheet = null;
@@ -340,7 +362,317 @@ function doPost(e) {
         return ContentService.createTextOutput(JSON.stringify(usersList)).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 3. INVENTORY LOGIC (Existing)
+    // ==========================================
+    // 3. BLIND CHECK APIs
+    // ==========================================
+    
+    // API: Create a new blind check session
+    if (data.loai == "CreateBlindSession") {
+        var sessionId = new Date().getTime().toString();
+        var createdAt = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+        sessionSheet.appendRow([sessionId, data.user1, data.user2, "pending", "pending", createdAt, "pending"]);
+        return ContentService.createTextOutput(JSON.stringify({
+            status: "success",
+            sessionId: sessionId,
+            user1: data.user1,
+            user2: data.user2
+        })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Get active session for a user
+    if (data.loai == "GetBlindSession") {
+        var sData = sessionSheet.getDataRange().getValues();
+        for (var s = sData.length - 1; s >= 1; s--) {
+            var row = sData[s];
+            // Check if user is part of this session and session is not completed
+            if ((String(row[1]) === String(data.username) || String(row[2]) === String(data.username)) && row[6] !== "applied") {
+                var userSlot = (String(row[1]) === String(data.username)) ? 1 : 2;
+                var myStatus = (userSlot === 1) ? row[3] : row[4];
+                var otherStatus = (userSlot === 1) ? row[4] : row[3];
+                return ContentService.createTextOutput(JSON.stringify({
+                    status: "success",
+                    sessionId: String(row[0]),
+                    user1: row[1],
+                    user2: row[2],
+                    userSlot: userSlot,
+                    myStatus: myStatus,
+                    otherStatus: otherStatus,
+                    result: row[6],
+                    createdAt: row[5]
+                })).setMimeType(ContentService.MimeType.JSON);
+            }
+        }
+        return ContentService.createTextOutput(JSON.stringify({ status: "none" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Get all sessions (for admin view)
+    if (data.loai == "GetAllBlindSessions") {
+        var sData = sessionSheet.getDataRange().getValues();
+        var sessions = [];
+        for (var s = 1; s < sData.length; s++) {
+            sessions.push({
+                sessionId: String(sData[s][0]),
+                user1: sData[s][1],
+                user2: sData[s][2],
+                status1: sData[s][3],
+                status2: sData[s][4],
+                createdAt: sData[s][5],
+                result: sData[s][6]
+            });
+        }
+        return ContentService.createTextOutput(JSON.stringify(sessions)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Save blind check data
+    if (data.loai == "SaveBlindCheck") {
+        var targetSheet = (data.slot === 1) ? blindCheck1Sheet : blindCheck2Sheet;
+        var createdAt = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+        
+        // Check if entry already exists for this session+sku+hsd
+        var existingData = targetSheet.getDataRange().getValues();
+        var found = false;
+        for (var e = 1; e < existingData.length; e++) {
+            if (String(existingData[e][0]) === String(data.sessionId) &&
+                String(existingData[e][1]) === String(data.sku) &&
+                String(existingData[e][3]) === String(data.hsd)) {
+                // Update existing
+                targetSheet.getRange(e + 1, 5).setValue(data.quantity);
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            targetSheet.appendRow([data.sessionId, data.sku, data.name, data.hsd, data.quantity, data.username, createdAt]);
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Get my blind check entries
+    if (data.loai == "GetMyBlindEntries") {
+        var targetSheet = (data.slot === 1) ? blindCheck1Sheet : blindCheck2Sheet;
+        var entries = [];
+        var eData = targetSheet.getDataRange().getValues();
+        for (var e = 1; e < eData.length; e++) {
+            if (String(eData[e][0]) === String(data.sessionId)) {
+                entries.push({
+                    sku: String(eData[e][1]),
+                    name: eData[e][2],
+                    hsd: eData[e][3],
+                    quantity: Number(eData[e][4])
+                });
+            }
+        }
+        return ContentService.createTextOutput(JSON.stringify(entries)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Mark blind check as done
+    if (data.loai == "MarkBlindDone") {
+        var sData = sessionSheet.getDataRange().getValues();
+        for (var s = 1; s < sData.length; s++) {
+            if (String(sData[s][0]) === String(data.sessionId)) {
+                var colToUpdate = (data.slot === 1) ? 4 : 5; // STATUS_1 or STATUS_2
+                sessionSheet.getRange(s + 1, colToUpdate).setValue("done");
+                
+                // Check if both are done
+                var otherCol = (data.slot === 1) ? 5 : 4;
+                var otherStatus = sessionSheet.getRange(s + 1, otherCol).getValue();
+                
+                if (otherStatus === "done") {
+                    // Both done - compare results
+                    var data1 = blindCheck1Sheet.getDataRange().getValues();
+                    var data2 = blindCheck2Sheet.getDataRange().getValues();
+                    
+                    var entries1 = {};
+                    var entries2 = {};
+                    
+                    for (var i = 1; i < data1.length; i++) {
+                        if (String(data1[i][0]) === String(data.sessionId)) {
+                            var key = String(data1[i][1]) + "|" + String(data1[i][3]);
+                            entries1[key] = { sku: String(data1[i][1]), name: data1[i][2], hsd: data1[i][3], qty: Number(data1[i][4]) };
+                        }
+                    }
+                    for (var i = 1; i < data2.length; i++) {
+                        if (String(data2[i][0]) === String(data.sessionId)) {
+                            var key = String(data2[i][1]) + "|" + String(data2[i][3]);
+                            entries2[key] = { sku: String(data2[i][1]), name: data2[i][2], hsd: data2[i][3], qty: Number(data2[i][4]) };
+                        }
+                    }
+                    
+                    // Check if all match
+                    var allMatch = true;
+                    var allKeys = Object.keys(entries1).concat(Object.keys(entries2));
+                    var uniqueKeys = allKeys.filter(function(v, i, a) { return a.indexOf(v) === i; });
+                    
+                    for (var k = 0; k < uniqueKeys.length; k++) {
+                        var key = uniqueKeys[k];
+                        if (!entries1[key] || !entries2[key] || entries1[key].qty !== entries2[key].qty) {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+                    
+                    sessionSheet.getRange(s + 1, 7).setValue(allMatch ? "match" : "mismatch");
+                }
+                
+                return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+            }
+        }
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Session not found" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Get blind check comparison result
+    if (data.loai == "GetBlindCheckResult") {
+        var data1 = blindCheck1Sheet.getDataRange().getValues();
+        var data2 = blindCheck2Sheet.getDataRange().getValues();
+        
+        var entries1 = {};
+        var entries2 = {};
+        
+        for (var i = 1; i < data1.length; i++) {
+            if (String(data1[i][0]) === String(data.sessionId)) {
+                var key = String(data1[i][1]) + "|" + String(data1[i][3]);
+                entries1[key] = { sku: String(data1[i][1]), name: data1[i][2], hsd: data1[i][3], qty: Number(data1[i][4]) };
+            }
+        }
+        for (var i = 1; i < data2.length; i++) {
+            if (String(data2[i][0]) === String(data.sessionId)) {
+                var key = String(data2[i][1]) + "|" + String(data2[i][3]);
+                entries2[key] = { sku: String(data2[i][1]), name: data2[i][2], hsd: data2[i][3], qty: Number(data2[i][4]) };
+            }
+        }
+        
+        var matches = [];
+        var mismatches = [];
+        
+        var allKeys = Object.keys(entries1).concat(Object.keys(entries2));
+        var uniqueKeys = allKeys.filter(function(v, i, a) { return a.indexOf(v) === i; });
+        
+        for (var k = 0; k < uniqueKeys.length; k++) {
+            var key = uniqueKeys[k];
+            var e1 = entries1[key];
+            var e2 = entries2[key];
+            
+            if (e1 && e2 && e1.qty === e2.qty) {
+                matches.push({ sku: e1.sku, name: e1.name, hsd: e1.hsd, qty1: e1.qty, qty2: e2.qty });
+            } else {
+                mismatches.push({
+                    sku: (e1 || e2).sku,
+                    name: (e1 || e2).name,
+                    hsd: (e1 || e2).hsd,
+                    qty1: e1 ? e1.qty : null,
+                    qty2: e2 ? e2.qty : null
+                });
+            }
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({
+            status: "success",
+            matches: matches,
+            mismatches: mismatches
+        })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Apply matched results to main inventory
+    if (data.loai == "ApplyBlindResult") {
+        // Update session status
+        var sData = sessionSheet.getDataRange().getValues();
+        for (var s = 1; s < sData.length; s++) {
+            if (String(sData[s][0]) === String(data.sessionId)) {
+                sessionSheet.getRange(s + 1, 7).setValue("applied");
+                break;
+            }
+        }
+        
+        // Apply matched items to main kho
+        var items = data.items; // Array of {sku, name, hsd, qty}
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            // Use existing KiemKe logic
+            var skuInput = String(item.sku).trim();
+            var hsdInputStr = String(item.hsd).trim().substring(0, 10);
+            var qtyInput = Number(item.qty);
+            var nameInput = item.name;
+            
+            // Read current data
+            var range = sheet.getDataRange();
+            var values = range.getValues();
+            var cleanData = [];
+            var lastSeenSku = "";
+            var lastSeenName = "";
+            
+            for (var r = 1; r < values.length; r++) {
+                var row = values[r];
+                var rSku = String(row[0]).trim();
+                var rName = String(row[1]);
+                if (rSku === "" && lastSeenSku !== "") { rSku = lastSeenSku; rName = (lastSeenName !== "") ? lastSeenName : rName; }
+                else if (rSku !== "") { lastSeenSku = rSku; lastSeenName = rName; }
+                if (rSku === "") continue;
+                if (rName === "") continue;
+                var rDateVal = row[2];
+                var rDateStr = "";
+                if (rDateVal instanceof Date) rDateStr = Utilities.formatDate(rDateVal, "GMT+7", "yyyy-MM-dd");
+                else rDateStr = String(rDateVal).trim().substring(0, 10);
+                cleanData.push({ sku: rSku, name: rName, date: rDateStr, qty: Number(row[3]) });
+            }
+            
+            // Update or add
+            var found = false;
+            for (var j = 0; j < cleanData.length; j++) {
+                if (cleanData[j].sku === skuInput && cleanData[j].date === hsdInputStr) {
+                    cleanData[j].qty = qtyInput;
+                    cleanData[j].name = nameInput;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) cleanData.push({ sku: skuInput, name: nameInput, date: hsdInputStr, qty: qtyInput });
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Reset session for re-checking mismatched items only
+    if (data.loai == "RecheckMismatched") {
+        var sData = sessionSheet.getDataRange().getValues();
+        for (var s = 1; s < sData.length; s++) {
+            if (String(sData[s][0]) === String(data.sessionId)) {
+                // Reset statuses to pending
+                sessionSheet.getRange(s + 1, 4).setValue("pending"); // STATUS_1
+                sessionSheet.getRange(s + 1, 5).setValue("pending"); // STATUS_2
+                sessionSheet.getRange(s + 1, 7).setValue("recheck"); // RESULT = recheck
+                break;
+            }
+        }
+        
+        // Clear old entries for this session and keep only mismatched items to re-check
+        var mismatches = data.mismatches; // Array of {sku, name, hsd}
+        
+        // Clear KIEM_KHO_1 entries for this session
+        var data1 = blindCheck1Sheet.getDataRange().getValues();
+        for (var i = data1.length - 1; i >= 1; i--) {
+            if (String(data1[i][0]) === String(data.sessionId)) {
+                blindCheck1Sheet.deleteRow(i + 1);
+            }
+        }
+        
+        // Clear KIEM_KHO_2 entries for this session
+        var data2 = blindCheck2Sheet.getDataRange().getValues();
+        for (var i = data2.length - 1; i >= 1; i--) {
+            if (String(data2[i][0]) === String(data.sessionId)) {
+                blindCheck2Sheet.deleteRow(i + 1);
+            }
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({ 
+            status: "success", 
+            message: "Phiên đã được reset để kiểm lại các mục sai lệch"
+        })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ==========================================
+    // 4. INVENTORY LOGIC (Existing)
     sheet.getRange("G1").setValue("VER 9.1 DYNAMIC").setFontColor("purple").setFontWeight("bold");
 
     if (data.loai == "ResetKho") {

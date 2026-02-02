@@ -11,6 +11,9 @@ import Inventory from './pages/Inventory';
 import ImportExport from './pages/ImportExport';
 import ManageUsers from './pages/ManageUsers';
 import ManageProducts from './pages/ManageProducts';
+import BlindCheck from './pages/BlindCheck';
+import BlindCheckResult from './pages/BlindCheckResult';
+import BlindCheckAdmin from './pages/BlindCheckAdmin';
 
 // --- CONFIG ---
 const API_URL = "https://script.google.com/macros/s/AKfycbyAZHsrSMjBJs_KvsrP-5-7YiHtke2BT8usL656VZjc2RNrCow8FGLaMJtjeAxnQ7J8/exec";
@@ -95,6 +98,7 @@ function App() {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
+    const [blindSession, setBlindSession] = useState(null);
 
     useEffect(() => {
         safeSetItem('inventory_logs', JSON.stringify(logs));
@@ -478,6 +482,22 @@ function App() {
                         />
                     )}
 
+                    {view === 'blind-check' && (
+                        <BlindCheck
+                            API_URL={API_URL}
+                            products={availableProducts}
+                            username={user.username}
+                            showStatus={showStatus}
+                        />
+                    )}
+
+                    {view === 'blind-check-admin' && (
+                        <BlindCheckAdmin
+                            API_URL={API_URL}
+                            showStatus={showStatus}
+                        />
+                    )}
+
                     {view === 'history' && (
                         <div className="space-y-6 animate-in fade-in duration-500">
                             <h2 className="text-3xl font-bold text-black tracking-tight">Lịch Sử Giao Dịch</h2>
@@ -534,9 +554,24 @@ function App() {
                                     <Users size={18} />
                                     <span className="text-sm font-medium">Nhân Sự</span>
                                 </button>
+                                <button
+                                    onClick={() => { setView('blind-check-admin'); setShowMobileMenu(false); }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left ${view === 'blind-check-admin' ? 'bg-emerald-50 text-emerald-700' : 'text-stone-600 hover:bg-stone-50'}`}
+                                >
+                                    <Users size={18} />
+                                    <span className="text-sm font-medium">QL Kiểm Kho Mù</span>
+                                </button>
                                 <div className="border-t border-stone-100 my-1"></div>
                             </>
                         )}
+                        <button
+                            onClick={() => { setView('blind-check'); setShowMobileMenu(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left ${view === 'blind-check' ? 'bg-blue-50 text-blue-700' : 'text-stone-600 hover:bg-stone-50'}`}
+                        >
+                            <Box size={18} />
+                            <span className="text-sm font-medium">Kiểm Kho Mù</span>
+                        </button>
+                        <div className="border-t border-stone-100 my-1"></div>
                         <button
                             onClick={() => { setShowChangePassModal(true); setShowMobileMenu(false); }}
                             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-stone-600 hover:bg-stone-50"
