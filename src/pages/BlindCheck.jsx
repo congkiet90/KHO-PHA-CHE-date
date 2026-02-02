@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Search, Save, CheckCircle, Loader2, Package, Calendar, Hash, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Search, Save, CheckCircle, Loader2, Package, Calendar, Hash, AlertCircle, Trash2, X, ToggleLeft, ToggleRight } from 'lucide-react';
 import DateWheelPicker from '../components/DateWheelPicker';
 
 const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }) => {
@@ -12,6 +12,8 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
     const [quantity, setQuantity] = useState('');
     const [saving, setSaving] = useState(false);
     const [marking, setMarking] = useState(false);
+    const [useHsd, setUseHsd] = useState(true); // Toggle for HSD
+    const [deleting, setDeleting] = useState(null); // Track which item is being deleted
 
     // Load session on mount
     useEffect(() => {
@@ -52,10 +54,16 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
     };
 
     const handleSaveEntry = async () => {
-        if (!selectedProduct || !hsd || !quantity) {
+        if (!selectedProduct || !quantity) {
             showStatus('error', 'Vui lòng nhập đầy đủ thông tin');
             return;
         }
+        if (useHsd && !hsd) {
+            showStatus('error', 'Vui lòng chọn HSD');
+            return;
+        }
+
+        const hsdValue = useHsd ? hsd : 'N/A';
 
         setSaving(true);
         try {
@@ -67,7 +75,7 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
                     slot: session.userSlot,
                     sku: selectedProduct.sku,
                     name: selectedProduct.name,
-                    hsd: hsd,
+                    hsd: hsdValue,
                     quantity: Number(quantity),
                     username
                 })
@@ -85,6 +93,32 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
             showStatus('error', 'Lỗi lưu dữ liệu');
         }
         setSaving(false);
+    };
+
+    const handleDeleteEntry = async (entry) => {
+        if (!confirm(`Xóa ${entry.name}?`)) return;
+
+        setDeleting(entry.sku + entry.hsd);
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    loai: 'DeleteBlindEntry',
+                    sessionId: session.sessionId,
+                    slot: session.userSlot,
+                    sku: entry.sku,
+                    hsd: entry.hsd
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showStatus('success', 'Đã xóa thành công');
+                loadMyEntries(session.sessionId, session.userSlot);
+            }
+        } catch (err) {
+            showStatus('error', 'Lỗi xóa dữ liệu');
+        }
+        setDeleting(null);
     };
 
     const handleMarkDone = async () => {
@@ -161,7 +195,6 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Status badges */}
                     <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${session.myStatus === 'done'
                         ? 'bg-green-100 text-green-700'
                         : 'bg-amber-100 text-amber-700'
@@ -217,7 +250,7 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
                             <div className="max-h-48 overflow-y-auto border border-stone-200 rounded-xl divide-y divide-stone-100">
                                 {filteredProducts.slice(0, 10).map(p => (
                                     <button
-                                        key={p.sku}
+                                        key={String(p.sku)}
                                         onClick={() => {
                                             setSelectedProduct(p);
                                             setSearchTerm('');
@@ -243,37 +276,48 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
                                         onClick={() => setSelectedProduct(null)}
                                         className="text-blue-400 hover:text-blue-600"
                                     >
-                                        ✕
+                                        <X size={18} />
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* HSD & Quantity */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-stone-600 mb-1.5 flex items-center gap-1">
+                        {/* HSD Toggle & Input */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium text-stone-600 flex items-center gap-1">
                                     <Calendar size={14} /> Hạn sử dụng
                                 </label>
+                                <button
+                                    onClick={() => setUseHsd(!useHsd)}
+                                    className={`flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${useHsd ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}
+                                >
+                                    {useHsd ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                                    {useHsd ? 'Bật' : 'Tắt'}
+                                </button>
+                            </div>
+                            {useHsd && (
                                 <DateWheelPicker
                                     value={hsd}
                                     onChange={setHsd}
                                     placeholder="Chọn HSD"
                                 />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-stone-600 mb-1.5 flex items-center gap-1">
-                                    <Hash size={14} /> Số lượng
-                                </label>
-                                <input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) => setQuantity(e.target.value)}
-                                    placeholder="0"
-                                    min="0"
-                                    className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
+                            )}
+                        </div>
+
+                        {/* Quantity */}
+                        <div>
+                            <label className="block text-sm font-medium text-stone-600 mb-1.5 flex items-center gap-1">
+                                <Hash size={14} /> Số lượng
+                            </label>
+                            <input
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => setQuantity(e.target.value)}
+                                placeholder="0"
+                                min="0"
+                                className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold text-center"
+                            />
                         </div>
 
                         {/* Save button */}
@@ -315,16 +359,25 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
                         {entries.map((e, idx) => (
                             <div key={idx} className="p-4 hover:bg-stone-50 transition-colors">
                                 <div className="flex justify-between items-center">
-                                    <div>
+                                    <div className="flex-1">
                                         <p className="font-medium text-black">{e.name}</p>
                                         <p className="text-xs text-stone-400 font-mono">{e.sku}</p>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right mr-4">
                                         <p className="font-bold text-black">{e.quantity}</p>
                                         <p className="text-xs text-stone-400">
-                                            HSD: {new Date(e.hsd).toLocaleDateString('vi-VN')}
+                                            {e.hsd === 'N/A' ? 'Không HSD' : `HSD: ${new Date(e.hsd).toLocaleDateString('vi-VN')}`}
                                         </p>
                                     </div>
+                                    {!isDone && (
+                                        <button
+                                            onClick={() => handleDeleteEntry(e)}
+                                            disabled={deleting === e.sku + e.hsd}
+                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            {deleting === e.sku + e.hsd ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))}

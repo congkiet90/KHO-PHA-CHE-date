@@ -449,6 +449,23 @@ function doPost(e) {
         return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // API: Delete a blind check entry
+    if (data.loai == "DeleteBlindEntry") {
+        var targetSheet = (Number(data.slot) === 1) ? blindCheck1Sheet : blindCheck2Sheet;
+        var existingData = targetSheet.getDataRange().getValues();
+        
+        for (var e = existingData.length - 1; e >= 1; e--) {
+            if (String(existingData[e][0]) === String(data.sessionId) &&
+                String(existingData[e][1]) === String(data.sku) &&
+                String(existingData[e][3]) === String(data.hsd)) {
+                targetSheet.deleteRow(e + 1);
+                return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+            }
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Không tìm thấy mục" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // API: Get my blind check entries
     if (data.loai == "GetMyBlindEntries") {
         var targetSheet = (data.slot === 1) ? blindCheck1Sheet : blindCheck2Sheet;
