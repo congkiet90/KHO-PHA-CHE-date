@@ -1,9 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Calendar, X, Check } from 'lucide-react';
+
+// Haptic feedback helper
+const triggerHaptic = () => {
+    if (navigator.vibrate) {
+        navigator.vibrate(5); // Very light vibration (5ms)
+    }
+};
 
 // iOS-style wheel picker component
 const WheelColumn = ({ items, value, onChange, label }) => {
     const containerRef = useRef(null);
+    const lastValueRef = useRef(value);
     const itemHeight = 44;
     const visibleItems = 5;
     const centerOffset = Math.floor(visibleItems / 2) * itemHeight;
@@ -16,18 +24,22 @@ const WheelColumn = ({ items, value, onChange, label }) => {
         }
     }, []);
 
-    const handleScroll = () => {
+    const handleScroll = useCallback(() => {
         if (!containerRef.current) return;
         const scrollTop = containerRef.current.scrollTop;
         const newIndex = Math.round(scrollTop / itemHeight);
         const clampedIndex = Math.max(0, Math.min(newIndex, items.length - 1));
-        if (items[clampedIndex] && items[clampedIndex].value !== value) {
+
+        if (items[clampedIndex] && items[clampedIndex].value !== lastValueRef.current) {
+            lastValueRef.current = items[clampedIndex].value;
+            triggerHaptic(); // Vibrate on each number change
             onChange(items[clampedIndex].value);
         }
-    };
+    }, [items, onChange]);
 
     const scrollToIndex = (index) => {
         if (containerRef.current) {
+            triggerHaptic();
             containerRef.current.scrollTo({
                 top: index * itemHeight,
                 behavior: 'smooth'
@@ -35,28 +47,31 @@ const WheelColumn = ({ items, value, onChange, label }) => {
         }
     };
 
+    // Prevent page scroll when touching this area
+    const handleTouchStart = (e) => {
+        e.stopPropagation();
+    };
+
     return (
-        <div className="flex-1 relative">
+        <div className="flex-1 relative touch-pan-y" onTouchStart={handleTouchStart}>
             <div className="text-center text-xs font-semibold text-stone-400 mb-2 uppercase tracking-wider">
                 {label}
             </div>
             <div className="relative h-[220px] overflow-hidden">
-                {/* Gradient overlays */}
-                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white to-transparent z-10 pointer-events-none" />
-                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent z-10 pointer-events-none" />
+                {/* Selection highlight - behind everything */}
+                <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-[44px] bg-stone-100 rounded-xl" style={{ zIndex: 1 }} />
 
-                {/* Selection highlight */}
-                <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-[44px] bg-stone-100 rounded-xl z-0" />
-
-                {/* Scrollable list */}
+                {/* Scrollable list - above highlight, full width touch area */}
                 <div
                     ref={containerRef}
                     onScroll={handleScroll}
-                    className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+                    className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide relative overscroll-contain"
                     style={{
                         scrollSnapType: 'y mandatory',
                         paddingTop: centerOffset,
-                        paddingBottom: centerOffset
+                        paddingBottom: centerOffset,
+                        zIndex: 2,
+                        WebkitOverflowScrolling: 'touch'
                     }}
                 >
                     {items.map((item, index) => {
@@ -65,9 +80,9 @@ const WheelColumn = ({ items, value, onChange, label }) => {
                             <div
                                 key={item.value}
                                 onClick={() => scrollToIndex(index)}
-                                className={`h-[44px] flex items-center justify-center cursor-pointer transition-all duration-200 snap-center ${isSelected
-                                        ? 'text-black font-bold text-xl'
-                                        : 'text-stone-400 text-lg'
+                                className={`h-[44px] flex items-center justify-center cursor-pointer transition-all duration-200 snap-center select-none ${isSelected
+                                    ? 'text-black font-bold text-xl'
+                                    : 'text-stone-400 text-lg'
                                     }`}
                                 style={{ scrollSnapAlign: 'center' }}
                             >
@@ -76,6 +91,10 @@ const WheelColumn = ({ items, value, onChange, label }) => {
                         );
                     })}
                 </div>
+
+                {/* Gradient overlays - on top */}
+                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white to-transparent pointer-events-none" style={{ zIndex: 3 }} />
+                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none" style={{ zIndex: 3 }} />
             </div>
         </div>
     );
