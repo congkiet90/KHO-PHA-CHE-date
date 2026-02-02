@@ -380,7 +380,7 @@ function App() {
     useEffect(() => {
         if (searchTerm.trim() === '') { setFilteredProducts([]); return; }
         const filtered = availableProducts.filter(p =>
-            p.name.toLowerCase().includes(searchTerm.toLowerCase()) || String(p.sku).includes(searchTerm)
+            p && p.name && p.sku && (String(p.name).toLowerCase().includes(searchTerm.toLowerCase()) || String(p.sku).includes(searchTerm))
         ).slice(0, 15);
         setFilteredProducts(filtered);
     }, [searchTerm, availableProducts]);
