@@ -688,6 +688,41 @@ function doPost(e) {
         })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // API: Delete a blind check session completely
+    if (data.loai == "DeleteBlindSession") {
+        var sessionId = String(data.sessionId);
+        
+        // Delete from session sheet
+        var sData = sessionSheet.getDataRange().getValues();
+        for (var s = sData.length - 1; s >= 1; s--) {
+            if (String(sData[s][0]) === sessionId) {
+                sessionSheet.deleteRow(s + 1);
+                break;
+            }
+        }
+        
+        // Delete all entries from KIEM_KHO_1
+        var data1 = blindCheck1Sheet.getDataRange().getValues();
+        for (var i = data1.length - 1; i >= 1; i--) {
+            if (String(data1[i][0]) === sessionId) {
+                blindCheck1Sheet.deleteRow(i + 1);
+            }
+        }
+        
+        // Delete all entries from KIEM_KHO_2
+        var data2 = blindCheck2Sheet.getDataRange().getValues();
+        for (var i = data2.length - 1; i >= 1; i--) {
+            if (String(data2[i][0]) === sessionId) {
+                blindCheck2Sheet.deleteRow(i + 1);
+            }
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({ 
+            status: "success", 
+            message: "Đã xóa phiên kiểm kho mù"
+        })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // ==========================================
     // 4. INVENTORY LOGIC (Existing)
     sheet.getRange("G1").setValue("VER 9.1 DYNAMIC").setFontColor("purple").setFontWeight("bold");

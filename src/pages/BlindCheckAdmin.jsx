@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Loader2, Clock, CheckCircle, XCircle, ArrowRight, RefreshCw } from 'lucide-react';
+import { Users, Plus, Loader2, Clock, CheckCircle, XCircle, ArrowRight, RefreshCw, Trash2, Eye, Download, AlertTriangle } from 'lucide-react';
+import BlindCheckResult from './BlindCheckResult';
 
 const BlindCheckAdmin = ({ API_URL, showStatus }) => {
     const [sessions, setSessions] = useState([]);
@@ -9,6 +10,8 @@ const BlindCheckAdmin = ({ API_URL, showStatus }) => {
     const [showCreate, setShowCreate] = useState(false);
     const [user1, setUser1] = useState('');
     const [user2, setUser2] = useState('');
+    const [viewingSession, setViewingSession] = useState(null);
+    const [deleting, setDeleting] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -68,6 +71,28 @@ const BlindCheckAdmin = ({ API_URL, showStatus }) => {
         setCreating(false);
     };
 
+    const handleDeleteSession = async (session) => {
+        if (!confirm(`Xóa phiên #${session.sessionId.slice(-6)}? Tất cả dữ liệu kiểm kho của phiên này sẽ bị xóa vĩnh viễn.`)) {
+            return;
+        }
+
+        setDeleting(session.sessionId);
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ loai: 'DeleteBlindSession', sessionId: session.sessionId })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showStatus('success', 'Đã xóa phiên kiểm kho');
+                loadData();
+            }
+        } catch (err) {
+            showStatus('error', 'Lỗi xóa phiên');
+        }
+        setDeleting(null);
+    };
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'done':
@@ -112,6 +137,38 @@ const BlindCheckAdmin = ({ API_URL, showStatus }) => {
         return (
             <div className="flex items-center justify-center py-20">
                 <Loader2 className="animate-spin text-stone-400" size={32} />
+            </div>
+        );
+    }
+
+    // Show results view
+    if (viewingSession) {
+        return (
+            <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setViewingSession(null)}
+                        className="px-4 py-2 bg-stone-100 text-stone-600 rounded-xl font-semibold hover:bg-stone-200 transition-colors"
+                    >
+                        ← Quay lại
+                    </button>
+                    <h2 className="text-xl font-bold text-black">
+                        Kết quả phiên #{viewingSession.sessionId.slice(-6)}
+                    </h2>
+                </div>
+                <BlindCheckResult
+                    API_URL={API_URL}
+                    session={viewingSession}
+                    showStatus={showStatus}
+                    onApply={() => {
+                        loadData();
+                        setViewingSession(null);
+                    }}
+                    onRecheck={() => {
+                        loadData();
+                        setViewingSession(null);
+                    }}
+                />
             </div>
         );
     }
@@ -211,47 +268,64 @@ const BlindCheckAdmin = ({ API_URL, showStatus }) => {
                         <table className="w-full text-left">
                             <thead className="bg-[#F5F5F7] text-[11px] font-bold uppercase tracking-wider text-stone-500 border-b border-black/5">
                                 <tr>
-                                    <th className="px-6 py-4">Phiên</th>
-                                    <th className="px-6 py-4">User 1</th>
-                                    <th className="px-6 py-4">User 2</th>
-                                    <th className="px-6 py-4 text-center">Trạng thái</th>
-                                    <th className="px-6 py-4 text-center">Kết quả</th>
-                                    <th className="px-6 py-4 text-center">Ngày tạo</th>
+                                    <th className="px-4 py-4">Phiên</th>
+                                    <th className="px-4 py-4">User 1</th>
+                                    <th className="px-4 py-4">User 2</th>
+                                    <th className="px-4 py-4 text-center">Kết quả</th>
+                                    <th className="px-4 py-4 text-center">Ngày tạo</th>
+                                    <th className="px-4 py-4 text-center">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-black/5">
-                                {sessions.slice().reverse().map((s, idx) => (
-                                    <tr key={idx} className="hover:bg-stone-50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <span className="font-mono text-sm text-stone-600">#{s.sessionId.slice(-6)}</span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-black">{s.user1}</span>
-                                                {getStatusBadge(s.status1)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-black">{s.user2}</span>
-                                                {getStatusBadge(s.status2)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {s.status1 === 'done' && s.status2 === 'done' ? (
-                                                <span className="text-emerald-600 font-semibold text-sm">Cả 2 xong</span>
-                                            ) : (
-                                                <span className="text-amber-600 font-semibold text-sm">Đang kiểm</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {getResultBadge(s.result)}
-                                        </td>
-                                        <td className="px-6 py-4 text-center text-sm text-stone-500">
-                                            {s.createdAt}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {sessions.slice().reverse().map((s, idx) => {
+                                    const bothDone = s.status1 === 'done' && s.status2 === 'done';
+                                    return (
+                                        <tr key={idx} className="hover:bg-stone-50 transition-colors">
+                                            <td className="px-4 py-4">
+                                                <span className="font-mono text-sm text-stone-600">#{s.sessionId.slice(-6)}</span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-black">{s.user1}</span>
+                                                    {getStatusBadge(s.status1)}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-black">{s.user2}</span>
+                                                    {getStatusBadge(s.status2)}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 text-center">
+                                                {getResultBadge(s.result)}
+                                            </td>
+                                            <td className="px-4 py-4 text-center text-sm text-stone-500">
+                                                {s.createdAt}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {bothDone && (
+                                                        <button
+                                                            onClick={() => setViewingSession(s)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            title="Xem kết quả"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteSession(s)}
+                                                        disabled={deleting === s.sessionId}
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Xóa phiên"
+                                                    >
+                                                        {deleting === s.sessionId ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
