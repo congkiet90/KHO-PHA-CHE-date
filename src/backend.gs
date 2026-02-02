@@ -602,39 +602,38 @@ function doPost(e) {
             }
         }
         
-        // Apply matched items to main kho
+        // Read current inventory data first
+        var range = sheet.getDataRange();
+        var values = range.getValues();
+        var cleanData = [];
+        var lastSeenSku = "";
+        var lastSeenName = "";
+        
+        for (var r = 1; r < values.length; r++) {
+            var row = values[r];
+            var rSku = String(row[0]).trim();
+            var rName = String(row[1]);
+            if (rSku === "" && lastSeenSku !== "") { rSku = lastSeenSku; rName = (lastSeenName !== "") ? lastSeenName : rName; }
+            else if (rSku !== "") { lastSeenSku = rSku; lastSeenName = rName; }
+            if (rSku === "") continue;
+            if (rName === "") continue;
+            var rDateVal = row[2];
+            var rDateStr = "";
+            if (rDateVal instanceof Date) rDateStr = Utilities.formatDate(rDateVal, "GMT+7", "yyyy-MM-dd");
+            else rDateStr = String(rDateVal).trim().substring(0, 10);
+            cleanData.push({ sku: rSku, name: rName, date: rDateStr, qty: Number(row[3]) });
+        }
+        
+        // Apply all items from blind check
         var items = data.items; // Array of {sku, name, hsd, qty}
         for (var i = 0; i < items.length; i++) {
             var item = items[i];
-            // Use existing KiemKe logic
             var skuInput = String(item.sku).trim();
             var hsdInputStr = String(item.hsd).trim().substring(0, 10);
             var qtyInput = Number(item.qty);
             var nameInput = item.name;
             
-            // Read current data
-            var range = sheet.getDataRange();
-            var values = range.getValues();
-            var cleanData = [];
-            var lastSeenSku = "";
-            var lastSeenName = "";
-            
-            for (var r = 1; r < values.length; r++) {
-                var row = values[r];
-                var rSku = String(row[0]).trim();
-                var rName = String(row[1]);
-                if (rSku === "" && lastSeenSku !== "") { rSku = lastSeenSku; rName = (lastSeenName !== "") ? lastSeenName : rName; }
-                else if (rSku !== "") { lastSeenSku = rSku; lastSeenName = rName; }
-                if (rSku === "") continue;
-                if (rName === "") continue;
-                var rDateVal = row[2];
-                var rDateStr = "";
-                if (rDateVal instanceof Date) rDateStr = Utilities.formatDate(rDateVal, "GMT+7", "yyyy-MM-dd");
-                else rDateStr = String(rDateVal).trim().substring(0, 10);
-                cleanData.push({ sku: rSku, name: rName, date: rDateStr, qty: Number(row[3]) });
-            }
-            
-            // Update or add
+            // Update or add to cleanData
             var found = false;
             for (var j = 0; j < cleanData.length; j++) {
                 if (cleanData[j].sku === skuInput && cleanData[j].date === hsdInputStr) {
@@ -647,7 +646,86 @@ function doPost(e) {
             if (!found) cleanData.push({ sku: skuInput, name: nameInput, date: hsdInputStr, qty: qtyInput });
         }
         
-        return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+        // NOW WRITE BACK TO SHEET (same logic as the main inventory write section)
+        cleanData.sort(function(a, b) {
+            var skuDiff = a.sku.localeCompare(b.sku);
+            if (skuDiff !== 0) return skuDiff;
+            return a.date.localeCompare(b.date);
+        });
+
+        if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).clear();
+        
+        var outputRows = [];
+        var today = new Date();
+        var mergeRanges = [];
+        var totalRanges = [];
+        var currentSku = "";
+        var startRowIndex = 0;
+        var groupQty = 0;
+
+        for (var k = 0; k < cleanData.length; k++) {
+            var itm = cleanData[k];
+            var status = "OK";
+            var d = new Date(itm.date);
+            if (!isNaN(d.getTime())) {
+                var diff = Math.ceil((d - today) / 86400000);
+                if (diff < 0) status = "HẾT HẠN";
+                else if (diff < 30) status = "1 Tháng";
+                else if (diff < 60) status = "2 Tháng";
+                else if (diff < 90) status = "3 Tháng";
+            }
+
+            outputRows.push([itm.sku, itm.name, itm.date, itm.qty, status, ""]);
+
+            var isLast = (k === cleanData.length - 1);
+            var isNextDiff = !isLast && (cleanData[k+1].sku !== itm.sku);
+
+            if (itm.sku !== currentSku) {
+                currentSku = itm.sku;
+                startRowIndex = k;
+                groupQty = itm.qty;
+            } else {
+                groupQty += itm.qty;
+            }
+
+            if (isLast || isNextDiff) {
+                var sheetStartRow = startRowIndex + 2;
+                var numRows = k - startRowIndex + 1;
+                if (numRows > 1) mergeRanges.push({r: sheetStartRow, nr: numRows, val: groupQty});
+                else totalRanges.push({r: sheetStartRow, val: groupQty});
+            }
+        }
+
+        if (outputRows.length > 0) {
+            sheet.getRange(2, 1, outputRows.length, 6).setValues(outputRows);
+            var fullRange = sheet.getRange(2, 1, outputRows.length, 6);
+            fullRange.setVerticalAlignment("middle").setBorder(true, true, true, true, true, true, "#e0e0e0", SpreadsheetApp.BorderStyle.SOLID);
+            
+            for (var m = 0; m < mergeRanges.length; m++) {
+                var mg = mergeRanges[m];
+                sheet.getRange(mg.r, 1, mg.nr, 1).merge().setFontWeight("bold");
+                sheet.getRange(mg.r, 2, mg.nr, 1).merge();
+                sheet.getRange(mg.r, 6, mg.nr, 1).merge().setValue(mg.val).setBackground("#f5f5f5").setFontWeight("bold").setHorizontalAlignment("center");
+            }
+            for (var t = 0; t < totalRanges.length; t++) {
+                var tr = totalRanges[t];
+                sheet.getRange(tr.r, 6).setValue(tr.val).setBackground("#f5f5f5").setFontWeight("bold").setHorizontalAlignment("center");
+            }
+            
+            var statusColors = [];
+            var fontColors = [];
+            for (var sc = 0; sc < outputRows.length; sc++) {
+                var txt = outputRows[sc][4];
+                if (txt === "HẾT HẠN") { statusColors.push(["#b71c1c"]); fontColors.push(["#ffffff"]); }
+                else if (txt === "1 Tháng") { statusColors.push(["#c62828"]); fontColors.push(["#ffffff"]); }
+                else if (txt === "2 Tháng") { statusColors.push(["#d32f2f"]); fontColors.push(["#ffffff"]); }
+                else if (txt === "3 Tháng") { statusColors.push(["#ef6c00"]); fontColors.push(["#ffffff"]); }
+                else { statusColors.push(["#e8f5e9"]); fontColors.push(["#2e7d32"]); }
+            }
+            sheet.getRange(2, 5, outputRows.length, 1).setBackgrounds(statusColors).setFontColors(fontColors).setFontWeight("bold").setHorizontalAlignment("center");
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({ status: "success", applied: items.length })).setMimeType(ContentService.MimeType.JSON);
     }
 
     // API: Reset session for re-checking mismatched items only
