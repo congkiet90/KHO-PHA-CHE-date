@@ -93,6 +93,93 @@ const BlindCheckAdmin = ({ API_URL, showStatus }) => {
         setDeleting(null);
     };
 
+    const handleExportExcel = async (session) => {
+        try {
+            // Fetch result first
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ loai: 'GetBlindCheckResult', sessionId: session.sessionId })
+            });
+            const result = await res.json();
+
+            if (result.status !== 'success') {
+                showStatus('error', 'Lỗi tải dữ liệu');
+                return;
+            }
+
+            const XLSX = await import('xlsx');
+            const wb = XLSX.utils.book_new();
+
+            // Sheet 1: Summary
+            const summaryData = [
+                ['BÁO CÁO KIỂM TRA CHÉO KIỂM MÙ'],
+                [],
+                ['Phiên kiểm tra:', '#' + session.sessionId.slice(-6)],
+                ['User 1:', session.user1],
+                ['User 2:', session.user2],
+                ['Ngày tạo:', session.createdAt],
+                [],
+                ['THỐNG KÊ'],
+                ['Tổng mục:', result.matches.length + result.mismatches.length],
+                ['Số mục khớp:', result.matches.length],
+                ['Số mục sai lệch:', result.mismatches.length],
+                ['Tỷ lệ khớp:', Math.round((result.matches.length / (result.matches.length + result.mismatches.length)) * 100) + '%']
+            ];
+            const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, summarySheet, 'Tổng Quan');
+
+            // Sheet 2: All Data (combined view like Excel)
+            if (result.matches.length > 0 || result.mismatches.length > 0) {
+                const allData = [['SKU', 'Tên Sản Phẩm', 'HSD', 'User 1', 'User 2', 'Trạng Thái', 'Chênh Lệch']];
+
+                // Add matches
+                result.matches.forEach(m => {
+                    allData.push([m.sku, m.name, m.hsd, m.qty1, m.qty1, '✓ Khớp', 0]);
+                });
+
+                // Add mismatches
+                result.mismatches.forEach(m => {
+                    allData.push([
+                        m.sku, m.name, m.hsd,
+                        m.qty1 !== null ? m.qty1 : 'Không có',
+                        m.qty2 !== null ? m.qty2 : 'Không có',
+                        '✗ Sai lệch',
+                        (m.qty1 !== null && m.qty2 !== null) ? Math.abs(m.qty1 - m.qty2) : '?'
+                    ]);
+                });
+
+                const allSheet = XLSX.utils.aoa_to_sheet(allData);
+                XLSX.utils.book_append_sheet(wb, allSheet, 'Toàn Bộ');
+            }
+
+            // Sheet 3: Matches only
+            if (result.matches.length > 0) {
+                const matchData = [['SKU', 'Tên Sản Phẩm', 'HSD', 'Số Lượng'],
+                ...result.matches.map(m => [m.sku, m.name, m.hsd, m.qty1])];
+                const matchSheet = XLSX.utils.aoa_to_sheet(matchData);
+                XLSX.utils.book_append_sheet(wb, matchSheet, 'Mục Khớp');
+            }
+
+            // Sheet 4: Mismatches only  
+            if (result.mismatches.length > 0) {
+                const mismatchData = [['SKU', 'Tên Sản Phẩm', 'HSD', 'User 1', 'User 2', 'Chênh Lệch'],
+                ...result.mismatches.map(m => [
+                    m.sku, m.name, m.hsd,
+                    m.qty1 !== null ? m.qty1 : 'Không có',
+                    m.qty2 !== null ? m.qty2 : 'Không có',
+                    (m.qty1 !== null && m.qty2 !== null) ? Math.abs(m.qty1 - m.qty2) : '?'
+                ])];
+                const mismatchSheet = XLSX.utils.aoa_to_sheet(mismatchData);
+                XLSX.utils.book_append_sheet(wb, mismatchSheet, 'Mục Sai Lệch');
+            }
+
+            XLSX.writeFile(wb, `KiemKhoMu_${session.sessionId.slice(-6)}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            showStatus('success', 'Đã xuất báo cáo Excel');
+        } catch (err) {
+            showStatus('error', 'Lỗi xuất Excel');
+        }
+    };
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'done':
@@ -305,13 +392,22 @@ const BlindCheckAdmin = ({ API_URL, showStatus }) => {
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center justify-center gap-2">
                                                     {bothDone && (
-                                                        <button
-                                                            onClick={() => setViewingSession(s)}
-                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                            title="Xem kết quả"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                onClick={() => setViewingSession(s)}
+                                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                title="Xem kết quả"
+                                                            >
+                                                                <Eye size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleExportExcel(s)}
+                                                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                                                title="Xuất Excel"
+                                                            >
+                                                                <Download size={18} />
+                                                            </button>
+                                                        </>
                                                     )}
                                                     <button
                                                         onClick={() => handleDeleteSession(s)}
