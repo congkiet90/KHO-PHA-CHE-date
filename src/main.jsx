@@ -16,7 +16,7 @@ import BlindCheckResult from './pages/BlindCheckResult';
 import BlindCheckAdmin from './pages/BlindCheckAdmin';
 
 // --- CONFIG ---
-const API_URL = "https://script.google.com/macros/s/AKfycbzD1IRiwbvZDSNdNV_zt3O1OoEAbUrV800UsITot8tF0ggOju4lZIgpyNFouSq7d49u/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwq-9K7LPmQ4IAd6AKsL7CyLym8lgY9qI7gVwPboZPJE6Snn3_vqBefbWBvCP00l-tH/exec";
 
 // --- STORAGE HELPERS (Safari-safe) ---
 // In-memory fallback storage for when localStorage is unavailable
