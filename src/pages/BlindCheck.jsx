@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Eye, EyeOff, Search, Save, CheckCircle, Loader2, Package, Calendar, Hash, AlertCircle, Trash2, X, ToggleLeft, ToggleRight, Sparkles, Scan } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DateWheelPicker from '../components/DateWheelPicker';
 import { validateWarehouseAction } from '../services/GeminiService';
 
-const AIScanner = React.lazy(() => import('../components/AIScanner'));
+const AIScanner = lazy(() => import('../components/AIScanner'));
 
 const BlindCheck = ({
     API_URL, products = [], username, showStatus = () => { },
@@ -294,12 +294,12 @@ const BlindCheck = ({
                     </h3>
 
                     {showScanner && (
-                        <React.Suspense fallback={<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
+                        <Suspense fallback={<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
                             <AIScanner
                                 onScanSuccess={handleScanSuccess}
                                 onClose={() => setShowScanner(false)}
                             />
-                        </React.Suspense>
+                        </Suspense>
                     )}
 
                     {/* Product Search */}

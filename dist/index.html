@@ -14,7 +14,26 @@
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
   </style>
-  <script type="module" crossorigin src="/assets/index-DCfQmsnG.js"></script>
+  <script>
+    window.onerror = function (msg, url, line, col, error) {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.color = 'red';
+      errorDiv.style.padding = '20px';
+      errorDiv.style.background = '#fee';
+      errorDiv.style.border = '2px solid red';
+      errorDiv.style.position = 'fixed';
+      errorDiv.style.top = '10px';
+      errorDiv.style.left = '10px';
+      errorDiv.style.zIndex = '9999';
+      errorDiv.innerHTML = '<b>Lỗi hệ thống (Global):</b> ' + msg + '<br><small>' + url + ':' + line + ':' + col + '</small>';
+      document.body.appendChild(errorDiv);
+      return false;
+    };
+    window.onunhandledrejection = function (event) {
+      console.error('Promise rejection:', event.reason);
+    };
+  </script>
+  <script type="module" crossorigin src="/assets/index-Bl_q15tD.js"></script>
 </head>
 
 <body>

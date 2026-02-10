@@ -1,8 +1,9 @@
+import React, { useState, lazy, Suspense } from 'react';
 import { Search, X, Loader2, Plus, Calendar, DownloadCloud, ClipboardCheck, Scan, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DateWheelPicker from '../components/DateWheelPicker';
 
-const AIScanner = React.lazy(() => import('../components/AIScanner'));
+const AIScanner = lazy(() => import('../components/AIScanner'));
 
 const ImportExport = ({
     isAdjustment, setIsAdjustment,
@@ -17,7 +18,7 @@ const ImportExport = ({
     aiFeedback, setAiFeedback,
     isAiValidating
 }) => {
-    const [showScanner, setShowScanner] = React.useState(false);
+    const [showScanner, setShowScanner] = useState(false);
 
     const handleScanSuccess = (data) => {
         if (data.name) setSearchTerm(data.name);
@@ -28,12 +29,12 @@ const ImportExport = ({
     return (
         <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
             {showScanner && (
-                <React.Suspense fallback={<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
                     <AIScanner
                         onScanSuccess={handleScanSuccess}
                         onClose={() => setShowScanner(false)}
                     />
-                </React.Suspense>
+                </Suspense>
             )}
             {/* AI Real-time Feedback Toast */}
             <AnimatePresence>

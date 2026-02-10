@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, Component } from 'react';
 import ReactDOM from 'react-dom/client';
 
 import { CheckCircle2, AlertCircle, Loader2, Lock, Sparkles, LayoutGrid, Plus, Box, User, LogOut, Key, X, Menu, Users, Package, History } from 'lucide-react';
@@ -17,7 +17,7 @@ import BlindCheckResult from './pages/BlindCheckResult';
 import BlindCheckAdmin from './pages/BlindCheckAdmin';
 import { validateWarehouseAction } from './services/GeminiService';
 
-const VirtualManager = React.lazy(() => import('./components/VirtualManager'));
+const VirtualManager = lazy(() => import('./components/VirtualManager'));
 
 // --- CONFIG ---
 const API_URL = "https://script.google.com/macros/s/AKfycbxbF8SZAU1Gg60KpsVp4cnlpKbQCzLV7JwCJhEJBYlNRsIyiv-Bs7E7w0aLH_wPVWIW/exec";
@@ -558,9 +558,9 @@ function App() {
             </main>
 
             {/* AI Chat Assistant */}
-            <React.Suspense fallback={null}>
+            <Suspense fallback={null}>
                 <VirtualManager inventoryContext={inventorySummary} />
-            </React.Suspense>
+            </Suspense>
 
             {/* Mobile Bottom Nav */}
             <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/20 rounded-full shadow-2xl shadow-black/10 px-6 py-4 flex items-center gap-6 z-50">
@@ -673,7 +673,7 @@ function App() {
     );
 }
 
-class ErrorBoundary extends React.Component {
+class ErrorBoundary extends Component {
     constructor(props) {
         super(props);
         this.state = { hasError: false, error: null, errorInfo: null };

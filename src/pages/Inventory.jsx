@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { LayoutGrid, Loader2, Save, X, Box } from 'lucide-react';
 
 const Inventory = ({ inventorySummary, isSyncing, fetchData, handleExport, setShowResetConfirm, handleDelete }) => {
@@ -56,7 +56,7 @@ const Inventory = ({ inventorySummary, isSyncing, fetchData, handleExport, setSh
                             </thead>
                             <tbody className="divide-y divide-black/5">
                                 {inventorySummary.map((item, idx) => (
-                                    <React.Fragment key={idx}>
+                                    <Fragment key={idx}>
                                         {Object.entries(item.batches).sort().map(([date, qty], bIdx) => {
                                             let statusText = "OK";
                                             let statusClass = "bg-stone-100 text-stone-600 border-stone-200";
@@ -108,7 +108,7 @@ const Inventory = ({ inventorySummary, isSyncing, fetchData, handleExport, setSh
                                                 </tr>
                                             );
                                         })}
-                                    </React.Fragment>
+                                    </Fragment>
                                 ))}
                             </tbody>
                             <tfoot className="bg-white border-t border-black/5">

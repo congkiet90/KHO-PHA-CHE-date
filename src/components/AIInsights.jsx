@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import { getDeepInsights } from '../services/GeminiService';
 import { motion } from 'framer-motion';

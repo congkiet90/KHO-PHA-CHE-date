@@ -1,8 +1,23 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+// Lazy initialization to prevent crashes at module load time
+let genAI = null;
+let model = null;
+
+const isOnline = () => navigator.onLine;
+
+function getModel() {
+    if (!model) {
+        genAI = new GoogleGenerativeAI(API_KEY);
+        model = genAI.getGenerativeModel(
+            { model: "gemini-flash-latest" },
+            { apiVersion: "v1beta" }
+        );
+    }
+    return model;
+}
 
 /**
  * Common System Instructions for the "Thủ Kho AI"
@@ -36,9 +51,12 @@ export const validateWarehouseAction = async (actionType, actionData, inventoryD
     `;
 
     try {
-        const result = await model.generateContent(prompt);
+        const result = await getModel().generateContent(prompt);
         return result.response.text();
-    } catch (e) { return null; }
+    } catch (e) {
+        console.error("AI Validation Error:", e);
+        return null;
+    }
 };
 
 /**
@@ -60,9 +78,12 @@ export const getDeepInsights = async (inventorySummary) => {
     `;
 
     try {
-        const result = await model.generateContent(prompt);
+        const result = await getModel().generateContent(prompt);
         return result.response.text();
-    } catch (e) { return "Không thể phân tích lúc này."; }
+    } catch (e) {
+        console.error("AI Insights Error:", e);
+        return "Không thể phân tích lúc này.";
+    }
 };
 
 /**
@@ -81,9 +102,12 @@ export const askVirtualManager = async (userMessage, inventoryContext) => {
     `;
 
     try {
-        const result = await model.generateContent(prompt);
+        const result = await getModel().generateContent(prompt);
         return result.response.text();
-    } catch (e) { return "Lỗi kết nối bộ não AI."; }
+    } catch (e) {
+        console.error("AI Chat Error:", e);
+        return "Lỗi kết nối bộ não AI.";
+    }
 };
 
 /**
@@ -109,7 +133,7 @@ export const scanProductImage = async (base64Image) => {
     `;
 
     try {
-        const result = await model.generateContent([
+        const result = await getModel().generateContent([
             prompt,
             {
                 inlineData: {
