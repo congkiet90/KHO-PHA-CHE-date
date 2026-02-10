@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Search, Save, CheckCircle, Loader2, Package, Calendar, Hash, AlertCircle, Trash2, X, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Eye, EyeOff, Search, Save, CheckCircle, Loader2, Package, Calendar, Hash, AlertCircle, Trash2, X, ToggleLeft, ToggleRight, Sparkles, Scan } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import DateWheelPicker from '../components/DateWheelPicker';
+import { validateWarehouseAction } from '../services/GeminiService';
 
-const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }) => {
+const AIScanner = React.lazy(() => import('../components/AIScanner'));
+
+const BlindCheck = ({
+    API_URL, products = [], username, showStatus = () => { },
+    aiFeedback, setAiFeedback, isAiValidating, setIsAiValidating, inventorySummary
+}) => {
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
     const [entries, setEntries] = useState([]);
@@ -14,6 +21,20 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
     const [marking, setMarking] = useState(false);
     const [useHsd, setUseHsd] = useState(true); // Toggle for HSD
     const [deleting, setDeleting] = useState(null); // Track which item is being deleted
+    const [showScanner, setShowScanner] = useState(false);
+
+    const handleScanSuccess = (data) => {
+        if (data.name) setSearchTerm(data.name);
+        if (data.expiryDate) setHsd(data.expiryDate);
+        if (data.sku) {
+            // Try to find matching product by SKU
+            const match = products.find(p => String(p.sku) === String(data.sku));
+            if (match) {
+                setSelectedProduct(match);
+                setSearchTerm('');
+            }
+        }
+    };
 
     // Load session on mount
     useEffect(() => {
@@ -87,7 +108,18 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
                 setSelectedProduct(null);
                 setHsd('');
                 setQuantity('');
+                setQuantity('');
                 setSearchTerm('');
+
+                // AI MONITOR: Validate the blind check entry
+                setIsAiValidating(true);
+                const feedback = await validateWarehouseAction(
+                    'Kiểm kho mù',
+                    { sku: selectedProduct.sku, name: selectedProduct.name, quantity: Number(quantity), hsd: hsdValue },
+                    inventorySummary
+                );
+                if (feedback) setAiFeedback({ type: 'info', message: feedback });
+                setIsAiValidating(false);
             }
         } catch (err) {
             showStatus('error', 'Lỗi lưu dữ liệu');
@@ -183,6 +215,35 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* AI Real-time Feedback */}
+            <AnimatePresence>
+                {aiFeedback && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className={`p-4 rounded-[20px] border flex items-start gap-3 shadow-md ${aiFeedback.type === 'warning'
+                            ? 'bg-amber-50 border-amber-100 text-amber-800'
+                            : 'bg-indigo-50 border-indigo-100 text-indigo-800'
+                            }`}
+                    >
+                        <Sparkles size={18} className={aiFeedback.type === 'warning' ? 'text-amber-500' : 'text-indigo-500'} />
+                        <div className="flex-1 text-sm">
+                            <span className="font-bold block mb-0.5">Thủ Kho AI:</span>
+                            {aiFeedback.message}
+                        </div>
+                        <button onClick={() => setAiFeedback(null)} className="opacity-40 hover:opacity-100"><X size={16} /></button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {isAiValidating && (
+                <div className="flex items-center gap-2 text-indigo-500 text-xs font-bold animate-pulse">
+                    <Loader2 size={12} className="animate-spin" />
+                    Thủ kho đang kiểm tra số liệu...
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
@@ -232,17 +293,35 @@ const BlindCheck = ({ API_URL, products = [], username, showStatus = () => { } }
                         <Package size={20} /> Nhập Kiểm Kho
                     </h3>
 
+                    {showScanner && (
+                        <React.Suspense fallback={<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
+                            <AIScanner
+                                onScanSuccess={handleScanSuccess}
+                                onClose={() => setShowScanner(false)}
+                            />
+                        </React.Suspense>
+                    )}
+
                     {/* Product Search */}
                     <div className="space-y-4">
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Tìm sản phẩm theo tên hoặc SKU..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
+                        <div className="relative flex gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm sản phẩm theo tên hoặc SKU..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <button
+                                onClick={() => setShowScanner(true)}
+                                className="px-4 py-3 bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-sm font-bold shrink-0"
+                            >
+                                <Scan size={18} />
+                                Quét AI
+                            </button>
                         </div>
 
                         {/* Product dropdown */}

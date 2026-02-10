@@ -1,6 +1,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { AlertTriangle, TrendingUp, Package, Clock, Box } from 'lucide-react';
+import AIInsights from '../components/AIInsights';
 
 const Dashboard = ({ inventorySummary }) => {
     // --- Data Analysis ---
@@ -50,6 +51,9 @@ const Dashboard = ({ inventorySummary }) => {
                     <p className="text-slate-500 text-sm">Cập nhật thời gian thực</p>
                 </div>
             </div>
+
+            {/* AI Insights Section */}
+            <AIInsights inventorySummary={inventorySummary} />
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">

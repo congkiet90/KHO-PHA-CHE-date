@@ -14,6 +14,9 @@ import ManageProducts from './pages/ManageProducts';
 import BlindCheck from './pages/BlindCheck';
 import BlindCheckResult from './pages/BlindCheckResult';
 import BlindCheckAdmin from './pages/BlindCheckAdmin';
+import { validateWarehouseAction } from './services/GeminiService';
+
+const VirtualManager = React.lazy(() => import('./components/VirtualManager'));
 
 // --- CONFIG ---
 const API_URL = "https://script.google.com/macros/s/AKfycbxbF8SZAU1Gg60KpsVp4cnlpKbQCzLV7JwCJhEJBYlNRsIyiv-Bs7E7w0aLH_wPVWIW/exec";
@@ -99,6 +102,10 @@ function App() {
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [blindSession, setBlindSession] = useState(null);
+
+    // --- AI MONITOR STATE ---
+    const [aiFeedback, setAiFeedback] = useState(null);
+    const [isAiValidating, setIsAiValidating] = useState(false);
 
     useEffect(() => {
         safeSetItem('inventory_logs', JSON.stringify(logs));
@@ -300,6 +307,17 @@ function App() {
             setLogs(prev => [{ id: Date.now(), ...newEntry }, ...prev]);
             showStatus('success', 'Đã lưu giao dịch');
             setQuantity(''); setExpiryDate('');
+
+            // AI MONITOR: Validate the action
+            setIsAiValidating(true);
+            const feedback = await validateWarehouseAction(
+                isAdjustment ? 'Điều chỉnh/Kiểm kê' : 'Nhập hàng',
+                newEntry,
+                inventorySummary
+            );
+            if (feedback) setAiFeedback({ type: 'info', message: feedback });
+            setIsAiValidating(false);
+
         } catch (err) { showStatus('error', 'Lỗi kết nối'); } finally { setIsSyncing(false); }
     };
 
@@ -314,6 +332,17 @@ function App() {
             setLogs(prev => prev.filter(log => !(String(log.sku) === String(itemSku) && String(log.hsd).includes(itemDate))));
             showStatus('success', 'Đã xóa lô hàng');
             setTimeout(fetchData, 2000);
+
+            // AI MONITOR: Validate deletion
+            setIsAiValidating(true);
+            const feedback = await validateWarehouseAction(
+                'Xóa lô hàng',
+                { sku: itemSku, hsd: itemDate },
+                inventorySummary
+            );
+            if (feedback) setAiFeedback({ type: 'warning', message: feedback });
+            setIsAiValidating(false);
+
         } catch (err) { showStatus('error', 'Lỗi khi xóa'); } finally { setIsSyncing(false); }
     };
 
@@ -455,6 +484,8 @@ function App() {
                             expiryDate={expiryDate} setExpiryDate={setExpiryDate}
                             handleSave={handleSave} isSyncing={isSyncing}
                             setSku={setSku} setName={setName}
+                            aiFeedback={aiFeedback} setAiFeedback={setAiFeedback}
+                            isAiValidating={isAiValidating}
                         />
                     )}
 
@@ -488,6 +519,11 @@ function App() {
                             products={availableProducts}
                             username={user.username}
                             showStatus={showStatus}
+                            aiFeedback={aiFeedback}
+                            setAiFeedback={setAiFeedback}
+                            isAiValidating={isAiValidating}
+                            setIsAiValidating={setIsAiValidating}
+                            inventorySummary={inventorySummary}
                         />
                     )}
 
@@ -519,6 +555,11 @@ function App() {
                     )}
                 </div>
             </main>
+
+            {/* AI Chat Assistant */}
+            <React.Suspense fallback={null}>
+                <VirtualManager inventoryContext={inventorySummary} />
+            </React.Suspense>
 
             {/* Mobile Bottom Nav */}
             <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/20 rounded-full shadow-2xl shadow-black/10 px-6 py-4 flex items-center gap-6 z-50">
