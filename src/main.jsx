@@ -1,8 +1,7 @@
+import './global'; // MUST BE FIRST
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 
-// BRUTE FORCE FIX: Expose React globally for any dependency receiving classic JSX
-window.React = React;
 import { CheckCircle2, AlertCircle, Loader2, Lock, Sparkles, LayoutGrid, Plus, Box, User, LogOut, Key, X, Menu, Users, Package, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
