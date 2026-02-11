@@ -1,7 +1,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { AlertTriangle, TrendingUp, Package, Clock, Box } from 'lucide-react';
-import AIInsights from '../components/AIInsights';
+// import AIInsights from '../components/AIInsights';
 
 const Dashboard = ({ inventorySummary }) => {
     // --- Data Analysis ---
@@ -52,8 +52,8 @@ const Dashboard = ({ inventorySummary }) => {
                 </div>
             </div>
 
-            {/* AI Insights Section */}
-            <AIInsights inventorySummary={inventorySummary} />
+            {/* AI Insights Section gỡ bỏ theo yêu cầu */}
+            {/* <AIInsights inventorySummary={inventorySummary} /> */}
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -119,26 +119,32 @@ const Dashboard = ({ inventorySummary }) => {
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                         <TrendingUp size={18} className="text-blue-500" /> Tình trạng Hạn Sử Dụng
                     </h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={pieData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {pieData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend verticalAlign="bottom" height={36} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    <div className="h-[256px] w-full min-w-0">
+                        {pieData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {pieData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend verticalAlign="bottom" height={36} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
+                                Không có dữ liệu để hiển thị
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -147,15 +153,21 @@ const Dashboard = ({ inventorySummary }) => {
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                         <Package size={18} className="text-purple-500" /> Top Tồn Kho
                     </h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={barData} layout="vertical">
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12 }} />
-                                <Tooltip cursor={{ fill: 'transparent' }} />
-                                <Bar dataKey="soluong" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="h-[256px] w-full min-w-0">
+                        {barData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={barData} layout="vertical">
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12 }} />
+                                    <Tooltip cursor={{ fill: 'transparent' }} />
+                                    <Bar dataKey="soluong" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
+                                Không có dữ liệu
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -8,16 +8,17 @@ const AIInsights = ({ inventorySummary }) => {
     const [loading, setLoading] = useState(false);
 
     const fetchInsights = async () => {
-        if (!inventorySummary || inventorySummary.length === 0) return;
+        if (!inventorySummary || inventorySummary.length === 0 || loading) return;
         setLoading(true);
         const result = await getDeepInsights(inventorySummary);
         setInsights(result);
         setLoading(false);
     };
 
-    useEffect(() => {
-        fetchInsights();
-    }, [inventorySummary]);
+    // Removed automatic fetch to save quota
+    // useEffect(() => {
+    //     fetchInsights();
+    // }, [inventorySummary]);
 
     return (
         <div className="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-[32px] border border-indigo-100 shadow-sm relative overflow-hidden group">

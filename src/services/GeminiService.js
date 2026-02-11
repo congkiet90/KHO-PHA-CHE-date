@@ -10,17 +10,55 @@ const isOnline = () => navigator.onLine;
 
 function getModel() {
     if (!model) {
+        if (!API_KEY) {
+            console.error("GeminiService: VITE_GEMINI_API_KEY is MISSING in import.meta.env.");
+            return null;
+        }
+        console.log("GeminiService: Initializing with key prefix: " + API_KEY.substring(0, 5));
         genAI = new GoogleGenerativeAI(API_KEY);
-        model = genAI.getGenerativeModel(
-            { model: "gemini-flash-latest" },
-            { apiVersion: "v1beta" }
-        );
+        model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     }
     return model;
 }
 
 /**
- * Common System Instructions for the "Thủ Kho AI"
+ * Diagnostic tool to test connection status
+ */
+export const testGeminiConnection = async () => {
+    console.log("GeminiService: Testing connection...");
+    if (!API_KEY) return { status: "missing_key", message: "API Key không tồn tại trong .env" };
+    if (!isOnline()) return { status: "offline", message: "Không có kết nối mạng" };
+
+    try {
+        const testModel = getModel();
+        if (!testModel) return { status: "init_error", message: "Không thể khởi tạo Model" };
+
+        const result = await testModel.generateContent("ping");
+        const response = await result.response;
+        console.log("GeminiService: Connection SUCCESS!");
+        return { status: "ok", message: "Kết nối thành công!" };
+    } catch (e) {
+        console.error("GeminiService: Connection FAILED!", e);
+        let errorType = "unknown";
+        if (e.message?.includes("403")) errorType = "permission_denied";
+        if (e.message?.includes("404")) errorType = "model_not_found";
+        if (e.message?.includes("401") || e.message?.includes("API_KEY_INVALID")) errorType = "invalid_key";
+        if (e.message?.includes("429")) errorType = "rate_limited";
+
+        return {
+            status: "error",
+            errorType,
+            message: e.message || "Lỗi không xác định",
+            technical: e.toString()
+        };
+    }
+};
+
+// Auto-run test on module load (logs to console)
+testGeminiConnection();
+
+/**
+ * Common System Instructions
  */
 const SYSTEM_INSTRUCTION = `
 Bạn là "Thủ Kho AI" của một kho nguyên liệu pha chế.
@@ -29,111 +67,103 @@ Tính cách: Nghiêm túc nhưng thân thiện, chính xác, luôn đặt câu h
 Ngôn ngữ: Tiếng Việt.
 `;
 
+const handleAIError = (e, context) => {
+    console.error(`GeminiService [${context}]:`, e);
+    const msg = e.message || "";
+    if (msg.includes("429")) return "Hệ thống AI đang quá tải (429). Vui lòng đợi vài giây.";
+    if (msg.includes("404")) return "Không tìm thấy phiên bản AI (404). Có thể model đã bị đổi tên.";
+    if (msg.includes("401") || msg.includes("API_KEY_INVALID")) return "Lỗi xác thực: API Key không hợp lệ.";
+    if (msg.includes("403")) return "Lỗi quyền truy cập: Key của bạn không được dùng model này.";
+    if (!isOnline()) return "Mất kết nối mạng.";
+    return "Lỗi kết nối bộ não AI. Vui lòng kiểm tra console.";
+};
+
 /**
- * Validate an action (Import/Export/Delete) before or after it happens.
+ * Validate an action
  */
 export const validateWarehouseAction = async (actionType, actionData, inventoryData) => {
-    if (!isOnline()) return "Không có kết nối mạng. Vui lòng kiểm tra lại.";
     if (!API_KEY) return null;
+    const model = getModel();
+    if (!model) return null;
 
     const prompt = `
     ${SYSTEM_INSTRUCTION}
-    BỐI CẢNH KHO: ${JSON.stringify(inventoryData).substring(0, 5000)}
-    HÀNH ĐỘNG VỪA THỰC HIỆN: ${actionType}
-    DỮ LIỆU GIAO DỊCH: ${JSON.stringify(actionData)}
+    BỐI CẢNH KHO: ${JSON.stringify(inventoryData).substring(0, 3000)}
+    HÀNH ĐỘNG: ${actionType}
+    DỮ LIỆU: ${JSON.stringify(actionData)}
 
-    HÃY NHẬN XÉT:
-    - Nếu là Nhập hàng: Có gì bất thường về số lượng hoặc tên SP không?
-    - Nếu là Xóa/Điều chỉnh: Có gây ra thiếu hụt lớn không?
-    - Nếu là Kiểm kho: Có sai lệch lớn so với tồn kho lý thuyết không?
-
-    TRẢ LỜI: Chỉ trả lời 1-2 câu ngắn gọn, súc tích kiểu "Thủ kho trực chiến". Nếu bình thường hãy nói "Đã ghi nhận, thông tin khớp".
+    HÃY NHẬN XÉT ngắn gọn 1-2 câu. Nếu bình thường nói "Đã ghi nhận, thông tin khớp".
     `;
 
     try {
-        const result = await getModel().generateContent(prompt);
+        const result = await model.generateContent(prompt);
         return result.response.text();
     } catch (e) {
-        console.error("AI Validation Error:", e);
-        return null;
+        return null; // Silent fail for validation to not block user
     }
 };
 
 /**
- * Deep Analysis of Inventory State
+ * Deep Analysis
  */
 export const getDeepInsights = async (inventorySummary) => {
     if (!API_KEY) return "Vui lòng cấu hình API Key.";
+    const model = getModel();
+    if (!model) return "Lỗi khởi tạo AI.";
 
     const prompt = `
     ${SYSTEM_INSTRUCTION}
-    DỮ LIỆU TỒN KHO CHI TIẾT: ${JSON.stringify(inventorySummary)}
-
-    HÃY PHÂN TÍCH VÀ ĐƯA RA:
-    1. CẢNH BÁO: Các mã hàng 'nguy kịch' (hết hạn, sắp hết hàng).
-    2. CHIẾN LƯỢC: Nên ưu tiên xuất món nào, nhập thêm món nào.
-    3. GỢI Ý: Một điều cần làm ngay bây giờ.
-    
-    Yêu cầu: Không dùng tiêu đề rườm rà, dùng bullet points ngắn.
+    DỮ LIỆU TỒN KHO: ${JSON.stringify(inventorySummary)}
+    PHÂN TÍCH VÀ ĐƯA RA: 1. CẢNH BÁO (hết hạn), 2. CHIẾN LƯỢC (nhập/xuất), 3. GỢI Ý.
+    Dùng bullet points ngắn.
     `;
 
     try {
-        const result = await getModel().generateContent(prompt);
+        const result = await model.generateContent(prompt);
         return result.response.text();
     } catch (e) {
-        console.error("AI Insights Error:", e);
-        return "Không thể phân tích lúc này.";
+        return handleAIError(e, "Insights");
     }
 };
 
 /**
- * Intelligent Helper (Chat)
+ * Virtual Manager Chat
  */
 export const askVirtualManager = async (userMessage, inventoryContext) => {
-    if (!isOnline()) return "Mất kết nối mạng. Thủ kho AI đang offline.";
-    if (!API_KEY) return "Vui lòng cấu hình API Key để trò chuyện với Thủ Kho.";
+    if (!API_KEY) return "Vui lòng cấu hình API Key để trò chuyện.";
+    const model = getModel();
+    if (!model) return "Lỗi khởi tạo AI.";
 
     const prompt = `
     ${SYSTEM_INSTRUCTION}
-    DỮ LIỆU HIỆN TẠI: ${JSON.stringify(inventoryContext).substring(0, 5000)}
+    DỮ LIỆU: ${JSON.stringify(inventoryContext).substring(0, 4000)}
     USER HỎI: "${userMessage}"
-
-    TRẢ LỜI: Ngắn gọn, đi thẳng vào vấn đề dựa trên số liệu thực tế. Nếu không có số liệu, hãy nói rõ là dữ liệu chưa cập nhật.
+    TRẢ LỜI: Ngắn gọn.
     `;
 
     try {
-        const result = await getModel().generateContent(prompt);
+        const result = await model.generateContent(prompt);
         return result.response.text();
     } catch (e) {
-        console.error("AI Chat Error:", e);
-        return "Lỗi kết nối bộ não AI.";
+        return handleAIError(e, "Chat");
     }
 };
 
 /**
- * AI Scanner: Extract product info from image (OCR & Barcode)
+ * AI Scanner
  */
 export const scanProductImage = async (base64Image) => {
-    if (!isOnline()) return { error: "Không có kết nối mạng." };
     if (!API_KEY) return { error: "Thiếu API Key" };
+    const model = getModel();
+    if (!model) return { error: "Lỗi khởi tạo AI." };
 
     const prompt = `
-    Phân tích hình ảnh này để tìm:
-    1. Tên sản phẩm.
-    2. Mã SKU hoặc Barcode (nếu có).
-    3. Ngày hết hạn hoặc Ngày sản xuất (nếu có, hãy chuyển sang định dạng YYYY-MM-DD).
-
-    TRẢ VỀ KẾT QUẢ DƯỚI DẠNG JSON:
-    {
-      "name": "tên sản phẩm",
-      "sku": "mã sku hoặc barcode",
-      "expiryDate": "YYYY-MM-DD hoặc null"
-    }
-    Chỉ trả về JSON, không có văn bản thừa.
+    Phân tích hình ảnh sản phẩm để tìm: Tên, Mã SKU (hoặc Barcode), Hạn sử dụng (YYYY-MM-DD).
+    TRẢ VỀ JSON: {"name": "...", "sku": "...", "expiryDate": "..."}
     `;
 
     try {
-        const result = await getModel().generateContent([
+        const result = await model.generateContent([
             prompt,
             {
                 inlineData: {
@@ -145,7 +175,6 @@ export const scanProductImage = async (base64Image) => {
         const text = result.response.text();
         return JSON.parse(text.replace(/```json|```/g, '').trim());
     } catch (e) {
-        console.error("AI Scanning Error:", e);
-        return { error: "Không thể nhận diện hình ảnh này. Vui lòng thử lại hoặc nhập tay." };
+        return { error: handleAIError(e, "Scanner") };
     }
 };
