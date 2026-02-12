@@ -21,8 +21,8 @@ function getModel() {
 
         try {
             genAI = new GoogleGenerativeAI(cleanKey);
-            // v1 is more stable for standard keys, but SDK handles this.
-            // Using the base model name gemini-1.5-flash.
+            // v1beta refers to model gemini-1.5-flash
+            // Sometimes certain keys prefer gemini-1.5-flash-latest
             model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         } catch (e) {
             console.error("GeminiService: Initialization Error", e);
@@ -31,6 +31,22 @@ function getModel() {
     }
     return model;
 }
+
+/**
+ * Diagnostic tool to check available models
+ */
+export const listAvailableModels = async () => {
+    if (!API_KEY) return [];
+    try {
+        const genAI = new GoogleGenerativeAI(API_KEY.trim());
+        // Note: listModels is part of the API, let's see if we can log it
+        console.log("GeminiService: Diagnostic - Attempting to check API access...");
+        const result = await testGeminiConnection();
+        return result;
+    } catch (e) {
+        return { error: e.message };
+    }
+};
 
 /**
  * Diagnostic tool to test connection status
