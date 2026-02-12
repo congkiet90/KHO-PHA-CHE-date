@@ -172,101 +172,104 @@ const BlindCheckResult = ({ API_URL, session, showStatus, onApply, onRecheck }) 
     const matchPercent = total > 0 ? Math.round((matchCount / total) * 100) : 0;
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-black flex items-center gap-2 tracking-tight">
-                        <BarChart3 size={24} className="text-purple-600" /> Kết Quả So Sánh
+                    <h2 className="text-3xl font-bold text-black flex items-center gap-3 tracking-tight">
+                        <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                            <BarChart3 size={24} />
+                        </div>
+                        Kết Quả So Sánh
                     </h2>
-                    <p className="text-sm text-stone-500 mt-1 font-medium">
-                        Phiên #{session.sessionId.slice(-6)}
+                    <p className="text-sm text-stone-500 mt-1 font-medium ml-15">
+                        Phiên đối soát #{session.sessionId.slice(-6)}
                     </p>
                 </div>
 
                 <div className="flex gap-2">
                     <button
                         onClick={handleExport}
-                        className="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 rounded-xl text-sm font-semibold hover:bg-stone-50 transition-colors flex items-center gap-2"
+                        className="px-5 py-3 bg-white border border-stone-200 text-stone-800 rounded-2xl text-sm font-bold hover:bg-stone-50 transition-all flex items-center gap-2 shadow-sm active:scale-95"
                     >
-                        <Download size={16} /> Xuất Excel
+                        <Download size={18} /> Xuất Excel
                     </button>
                     <button
                         onClick={loadResult}
-                        className="p-2.5 bg-white border border-black/10 text-stone-600 rounded-xl hover:bg-stone-50 transition-colors shadow-sm"
+                        className="p-3 bg-white border border-black/10 text-stone-600 rounded-2xl hover:bg-stone-50 transition-all shadow-sm active:rotate-180 duration-500"
                     >
-                        <RefreshCw size={18} />
+                        <RefreshCw size={20} />
                     </button>
                 </div>
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className={`rounded-2xl p-5 ${matchPercent === 100 ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' : 'bg-white border border-stone-200'}`}>
-                    <p className={`text-sm font-medium ${matchPercent === 100 ? 'text-emerald-100' : 'text-stone-500'}`}>Tỷ lệ khớp</p>
-                    <p className={`text-3xl font-bold mt-1 ${matchPercent === 100 ? 'text-white' : 'text-black'}`}>{matchPercent}%</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                <div className={`rounded-[32px] p-6 shadow-sm border transition-all ${matchPercent === 100 ? 'bg-black text-white border-black ring-4 ring-black/5' : 'bg-white border-black/5'}`}>
+                    <p className={`text-xs font-bold uppercase tracking-widest ${matchPercent === 100 ? 'text-white/60' : 'text-stone-400'}`}>Tỷ lệ khớp</p>
+                    <p className="text-4xl font-black mt-2 tracking-tighter">{matchPercent}%</p>
                 </div>
 
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
-                    <div className="flex items-center gap-2">
-                        <CheckCircle size={18} className="text-emerald-600" />
-                        <p className="text-sm font-medium text-emerald-700">Khớp</p>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-[32px] p-6">
+                    <div className="flex items-center gap-2 text-emerald-600">
+                        <CheckCircle size={18} strokeWidth={2.5} />
+                        <span className="text-xs font-bold uppercase tracking-widest">Khớp</span>
                     </div>
-                    <p className="text-3xl font-bold text-emerald-700 mt-1">{matchCount}</p>
+                    <p className="text-4xl font-black text-emerald-700 mt-2 tracking-tighter">{matchCount}</p>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
-                    <div className="flex items-center gap-2">
-                        <XCircle size={18} className="text-red-600" />
-                        <p className="text-sm font-medium text-red-700">Sai lệch</p>
+                <div className="bg-rose-50 border border-rose-100 rounded-[32px] p-6">
+                    <div className="flex items-center gap-2 text-rose-600">
+                        <XCircle size={18} strokeWidth={2.5} />
+                        <span className="text-xs font-bold uppercase tracking-widest">Sai lệch</span>
                     </div>
-                    <p className="text-3xl font-bold text-red-700 mt-1">{mismatchCount}</p>
+                    <p className="text-4xl font-black text-rose-700 mt-2 tracking-tighter">{mismatchCount}</p>
                 </div>
 
-                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5">
-                    <div className="flex items-center gap-2">
-                        <AlertOctagon size={18} className="text-orange-600" />
-                        <p className="text-sm font-medium text-orange-700">Chưa kiểm</p>
+                <div className="bg-amber-50 border border-amber-100 rounded-[32px] p-6">
+                    <div className="flex items-center gap-2 text-amber-600">
+                        <AlertOctagon size={18} strokeWidth={2.5} />
+                        <span className="text-xs font-bold uppercase tracking-widest">Chưa kiểm</span>
                     </div>
-                    <p className="text-3xl font-bold text-orange-700 mt-1">{result.unchecked ? result.unchecked.length : 0}</p>
+                    <p className="text-4xl font-black text-amber-700 mt-2 tracking-tighter">{result.unchecked ? result.unchecked.length : 0}</p>
                 </div>
             </div>
 
             {/* Unchecked Items Table (Warning) */}
             {result.unchecked && result.unchecked.length > 0 && (
-                <div className="bg-white rounded-[24px] shadow-sm border border-orange-200 overflow-hidden">
-                    <div className="p-4 bg-orange-50 border-b border-orange-200 flex items-center justify-between">
+                <div className="bg-white rounded-[32px] shadow-sm border border-amber-200 overflow-hidden">
+                    <div className="p-5 bg-amber-50/50 border-b border-amber-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <AlertOctagon size={18} className="text-orange-600" />
-                            <h3 className="font-bold text-orange-800">Hàng có trong kho nhưng CHƯA KIỂM ({result.unchecked.length})</h3>
+                            <AlertOctagon size={20} className="text-amber-600" />
+                            <h3 className="font-bold text-amber-900">Mã hàng bỏ sót ({result.unchecked.length})</h3>
                         </div>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-orange-50/50 text-xs font-bold uppercase text-orange-700 border-b border-orange-100">
+                            <thead className="bg-amber-50/30 text-[11px] font-bold uppercase tracking-widest text-amber-700 border-b border-amber-100">
                                 <tr>
-                                    <th className="px-6 py-3">Sản phẩm</th>
-                                    <th className="px-6 py-3 text-center">HSD</th>
-                                    <th className="px-6 py-3 text-center">Tồn Hệ Thống</th>
-                                    <th className="px-6 py-3 text-center">Trạng Thái</th>
+                                    <th className="px-6 py-4">Sản phẩm</th>
+                                    <th className="px-6 py-4 text-center">HSD</th>
+                                    <th className="px-6 py-4 text-center">Tồn Hệ Thống</th>
+                                    <th className="px-6 py-4 text-center">Trạng Thái</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-orange-100">
+                            <tbody className="divide-y divide-amber-100">
                                 {result.unchecked.map((u, idx) => (
-                                    <tr key={idx} className="hover:bg-orange-50/50">
-                                        <td className="px-6 py-4">
-                                            <p className="font-medium text-black">{u.name}</p>
-                                            <p className="text-xs text-stone-400 font-mono">{u.sku}</p>
+                                    <tr key={idx} className="hover:bg-amber-50/40 transition-colors">
+                                        <td className="px-6 py-5">
+                                            <p className="font-bold text-black">{u.name}</p>
+                                            <p className="text-xs text-stone-400 font-mono mt-0.5">{u.sku}</p>
                                         </td>
-                                        <td className="px-6 py-4 text-center text-sm">
-                                            {u.hsd ? new Date(u.hsd).toLocaleDateString('vi-VN') : '-'}
+                                        <td className="px-6 py-5 text-center text-sm font-medium">
+                                            {u.hsd ? new Date(u.hsd).toLocaleDateString('vi-VN') : '—'}
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="font-bold text-stone-700">{u.systemQty}</span>
+                                        <td className="px-6 py-5 text-center">
+                                            <span className="font-black text-stone-800 text-lg">{u.systemQty}</span>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">
-                                                BỎ SÓT?
+                                        <td className="px-6 py-5 text-center">
+                                            <span className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-xl text-[10px] font-black tracking-widest">
+                                                CHƯA KIỂM
                                             </span>
                                         </td>
                                     </tr>
@@ -279,56 +282,56 @@ const BlindCheckResult = ({ API_URL, session, showStatus, onApply, onRecheck }) 
 
             {/* Mismatches Table */}
             {mismatchCount > 0 && (
-                <div className="bg-white rounded-[24px] shadow-sm border border-red-200 overflow-hidden">
-                    <div className="p-4 bg-red-50 border-b border-red-200 flex items-center justify-between">
+                <div className="bg-white rounded-[32px] shadow-sm border border-rose-200 overflow-hidden">
+                    <div className="p-5 bg-rose-50/50 border-b border-rose-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <AlertTriangle size={18} className="text-red-600" />
-                            <h3 className="font-bold text-red-800">Các mục sai lệch ({mismatchCount})</h3>
+                            <AlertTriangle size={20} className="text-rose-600" />
+                            <h3 className="font-bold text-rose-900">Danh sách sai lệch ({mismatchCount})</h3>
                         </div>
                         <button
                             onClick={handleRecheck}
                             disabled={rechecking}
-                            className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors flex items-center gap-2 shadow-lg shadow-red-600/20"
+                            className="px-5 py-2.5 bg-rose-600 text-white rounded-2xl text-sm font-bold hover:bg-rose-700 transition-all flex items-center gap-2 shadow-lg shadow-rose-600/20 active:scale-95"
                         >
                             {rechecking ? <Loader2 className="animate-spin" size={16} /> : <RotateCcw size={16} />}
-                            Kiểm lại
+                            Yêu cầu kiểm lại
                         </button>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-red-50/50 text-xs font-bold uppercase text-red-700 border-b border-red-100">
+                            <thead className="bg-rose-50/30 text-[11px] font-bold uppercase tracking-widest text-rose-700 border-b border-rose-100">
                                 <tr>
-                                    <th className="px-6 py-3">Sản phẩm</th>
-                                    <th className="px-6 py-3 text-center">HSD</th>
-                                    <th className="px-6 py-3 text-center">User 1</th>
-                                    <th className="px-6 py-3 text-center">User 2</th>
-                                    <th className="px-6 py-3 text-center">Chênh lệch</th>
+                                    <th className="px-6 py-4">Sản phẩm</th>
+                                    <th className="px-6 py-4 text-center">HSD</th>
+                                    <th className="px-6 py-4 text-center">User 1</th>
+                                    <th className="px-6 py-4 text-center">User 2</th>
+                                    <th className="px-6 py-4 text-center">Chênh lệch</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-red-100">
+                            <tbody className="divide-y divide-rose-100">
                                 {result.mismatches.map((m, idx) => (
-                                    <tr key={idx} className="hover:bg-red-50/50">
-                                        <td className="px-6 py-4">
-                                            <p className="font-medium text-black">{m.name}</p>
-                                            <p className="text-xs text-stone-400 font-mono">{m.sku}</p>
+                                    <tr key={idx} className="hover:bg-rose-50/40 transition-colors">
+                                        <td className="px-6 py-5">
+                                            <p className="font-bold text-black">{m.name}</p>
+                                            <p className="text-xs text-stone-400 font-mono mt-0.5">{m.sku}</p>
                                         </td>
-                                        <td className="px-6 py-4 text-center text-sm">
-                                            {m.hsd ? new Date(m.hsd).toLocaleDateString('vi-VN') : '-'}
+                                        <td className="px-6 py-5 text-center text-sm font-medium">
+                                            {m.hsd ? new Date(m.hsd).toLocaleDateString('vi-VN') : '—'}
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`font-bold ${m.qty1 === null ? 'text-stone-300' : 'text-blue-600'}`}>
-                                                {m.qty1 === null ? 'Không có' : m.qty1}
+                                        <td className="px-6 py-5 text-center">
+                                            <span className={`text-xl font-black ${m.qty1 === null ? 'text-stone-300' : 'text-blue-500'}`}>
+                                                {m.qty1 === null ? '—' : m.qty1}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`font-bold ${m.qty2 === null ? 'text-stone-300' : 'text-orange-600'}`}>
-                                                {m.qty2 === null ? 'Không có' : m.qty2}
+                                        <td className="px-6 py-5 text-center">
+                                            <span className={`text-xl font-black ${m.qty2 === null ? 'text-stone-300' : 'text-orange-500'}`}>
+                                                {m.qty2 === null ? '—' : m.qty2}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                                        <td className="px-6 py-5 text-center">
+                                            <div className="inline-flex items-center justify-center w-10 h-10 bg-rose-100 text-rose-700 rounded-full text-sm font-black">
                                                 {m.qty1 !== null && m.qty2 !== null ? Math.abs(m.qty1 - m.qty2) : '?'}
-                                            </span>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -340,44 +343,44 @@ const BlindCheckResult = ({ API_URL, session, showStatus, onApply, onRecheck }) 
 
             {/* Matches Table */}
             {matchCount > 0 && (
-                <div className="bg-white rounded-[24px] shadow-sm border border-emerald-200 overflow-hidden">
-                    <div className="p-4 bg-emerald-50 border-b border-emerald-200 flex items-center justify-between">
+                <div className="bg-white rounded-[32px] shadow-sm border border-emerald-200 overflow-hidden">
+                    <div className="p-5 bg-emerald-50/50 border-b border-emerald-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <CheckCircle size={18} className="text-emerald-600" />
-                            <h3 className="font-bold text-emerald-800">Các mục khớp ({matchCount})</h3>
+                            <CheckCircle size={20} className="text-emerald-600" />
+                            <h3 className="font-bold text-emerald-900">Dữ liệu khớp ({matchCount})</h3>
                         </div>
                         {session.result !== 'applied' && (
                             <button
                                 onClick={handleApply}
                                 disabled={applying}
-                                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-600/20"
+                                className="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-sm font-bold hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95"
                             >
                                 {applying ? <Loader2 className="animate-spin" size={16} /> : <ArrowRight size={16} />}
-                                Áp dụng vào kho
+                                Áp dụng vào kho chính
                             </button>
                         )}
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-emerald-50/50 text-xs font-bold uppercase text-emerald-700 border-b border-emerald-100">
+                            <thead className="bg-emerald-50/30 text-[11px] font-bold uppercase tracking-widest text-emerald-700 border-b border-emerald-100">
                                 <tr>
-                                    <th className="px-6 py-3">Sản phẩm</th>
-                                    <th className="px-6 py-3 text-center">HSD</th>
-                                    <th className="px-6 py-3 text-center">Số lượng</th>
+                                    <th className="px-6 py-4">Sản phẩm</th>
+                                    <th className="px-6 py-4 text-center">HSD</th>
+                                    <th className="px-6 py-4 text-center">Số lượng</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-emerald-100">
                                 {result.matches.map((m, idx) => (
-                                    <tr key={idx} className="hover:bg-emerald-50/50">
-                                        <td className="px-6 py-4">
-                                            <p className="font-medium text-black">{m.name}</p>
-                                            <p className="text-xs text-stone-400 font-mono">{m.sku}</p>
+                                    <tr key={idx} className="hover:bg-emerald-50/40 transition-colors">
+                                        <td className="px-6 py-5">
+                                            <p className="font-bold text-black">{m.name}</p>
+                                            <p className="text-xs text-stone-400 font-mono mt-0.5">{m.sku}</p>
                                         </td>
-                                        <td className="px-6 py-4 text-center text-sm">
-                                            {m.hsd ? new Date(m.hsd).toLocaleDateString('vi-VN') : '-'}
+                                        <td className="px-6 py-5 text-center text-sm font-medium">
+                                            {m.hsd ? new Date(m.hsd).toLocaleDateString('vi-VN') : '—'}
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="font-bold text-emerald-700">{m.qty1}</span>
+                                        <td className="px-6 py-5 text-center font-black text-emerald-700 text-xl">
+                                            {m.qty1}
                                         </td>
                                     </tr>
                                 ))}

@@ -20,7 +20,7 @@ import { validateWarehouseAction } from './services/GeminiService';
 const VirtualManager = lazy(() => import('./components/VirtualManager'));
 
 // --- CONFIG ---
-const API_URL = "https://script.google.com/macros/s/AKfycbxbF8SZAU1Gg60KpsVp4cnlpKbQCzLV7JwCJhEJBYlNRsIyiv-Bs7E7w0aLH_wPVWIW/exec";
+const API_URL = import.meta.env.VITE_API_URL || "https://script.google.com/macros/s/AKfycbxbF8SZAU1Gg60KpsVp4cnlpKbQCzLV7JwCJhEJBYlNRsIyiv-Bs7E7w0aLH_wPVWIW/exec";
 
 // --- STORAGE HELPERS (Safari-safe) ---
 // In-memory fallback storage for when localStorage is unavailable

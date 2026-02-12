@@ -15,14 +15,20 @@ function getModel() {
             return null;
         }
 
-        // Ensure no hidden whitespace from env variables
-        const cleanKey = API_KEY.trim();
-        console.log("GeminiService: Initializing with key prefix: " + cleanKey.substring(0, 5));
+        // Ensure no hidden whitespace or newlines from env variables
+        const cleanKey = API_KEY.trim().replace(/[\n\r]/g, "");
+        console.log("GeminiService: Initializing...");
 
         try {
             genAI = new GoogleGenerativeAI(cleanKey);
-            // Try gemini-1.5-flash-latest which is sometimes more robust for 404s
-            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+            // Use gemini-1.5-flash which is the standard naming.
+            // Avoid '-latest' if it causes 404s in some environments.
+            model = genAI.getGenerativeModel({
+                model: "gemini-1.5-flash",
+                generationConfig: {
+                    maxOutputTokens: 2048,
+                }
+            });
         } catch (e) {
             console.error("GeminiService: Initialization Error", e);
             return null;
