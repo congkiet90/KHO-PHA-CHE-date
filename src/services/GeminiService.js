@@ -21,9 +21,8 @@ function getModel() {
 
         try {
             genAI = new GoogleGenerativeAI(cleanKey);
-            // v1beta refers to model gemini-1.5-flash
-            // Sometimes certain keys prefer gemini-1.5-flash-latest
-            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            // Try gemini-1.5-flash-latest which is sometimes more robust for 404s
+            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
         } catch (e) {
             console.error("GeminiService: Initialization Error", e);
             return null;
