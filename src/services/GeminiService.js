@@ -11,12 +11,23 @@ const isOnline = () => navigator.onLine;
 function getModel() {
     if (!model) {
         if (!API_KEY) {
-            console.error("GeminiService: VITE_GEMINI_API_KEY is MISSING in import.meta.env.");
+            console.error("GeminiService: VITE_GEMINI_API_KEY is MISSING.");
             return null;
         }
-        console.log("GeminiService: Initializing with key prefix: " + API_KEY.substring(0, 5));
-        genAI = new GoogleGenerativeAI(API_KEY);
-        model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // Ensure no hidden whitespace from env variables
+        const cleanKey = API_KEY.trim();
+        console.log("GeminiService: Initializing with key prefix: " + cleanKey.substring(0, 5));
+
+        try {
+            genAI = new GoogleGenerativeAI(cleanKey);
+            // v1 is more stable for standard keys, but SDK handles this.
+            // Using the base model name gemini-1.5-flash.
+            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        } catch (e) {
+            console.error("GeminiService: Initialization Error", e);
+            return null;
+        }
     }
     return model;
 }
@@ -54,8 +65,8 @@ export const testGeminiConnection = async () => {
     }
 };
 
-// Auto-run test on module load (logs to console)
-testGeminiConnection();
+// Auto-run test on module load removed to optimize usage.
+// testGeminiConnection();
 
 /**
  * Common System Instructions
@@ -70,8 +81,8 @@ Ngôn ngữ: Tiếng Việt.
 const handleAIError = (e, context) => {
     console.error(`GeminiService [${context}]:`, e);
     const msg = e.message || "";
-    if (msg.includes("429")) return "Hệ thống AI đang quá tải (429). Vui lòng đợi vài giây.";
-    if (msg.includes("404")) return "Không tìm thấy phiên bản AI (404). Có thể model đã bị đổi tên.";
+    if (msg.includes("429")) return "Bạn đang hỏi quá nhanh (Giới hạn 15 câu/phút). Vui lòng đợi khoảng 1 phút rồi thử lại.";
+    if (msg.includes("404")) return `Lỗi 404: Không tìm thấy Model. Chi tiết: ${msg}`;
     if (msg.includes("401") || msg.includes("API_KEY_INVALID")) return "Lỗi xác thực: API Key không hợp lệ.";
     if (msg.includes("403")) return "Lỗi quyền truy cập: Key của bạn không được dùng model này.";
     if (!isOnline()) return "Mất kết nối mạng.";

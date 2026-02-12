@@ -309,16 +309,6 @@ function App() {
             showStatus('success', 'Đã lưu giao dịch');
             setQuantity(''); setExpiryDate('');
 
-            // AI MONITOR: Validate the action
-            setIsAiValidating(true);
-            const feedback = await validateWarehouseAction(
-                isAdjustment ? 'Điều chỉnh/Kiểm kê' : 'Nhập hàng',
-                newEntry,
-                inventorySummary
-            );
-            if (feedback) setAiFeedback({ type: 'info', message: feedback });
-            setIsAiValidating(false);
-
         } catch (err) { showStatus('error', 'Lỗi kết nối'); } finally { setIsSyncing(false); }
     };
 
@@ -333,16 +323,6 @@ function App() {
             setLogs(prev => prev.filter(log => !(String(log.sku) === String(itemSku) && String(log.hsd).includes(itemDate))));
             showStatus('success', 'Đã xóa lô hàng');
             setTimeout(fetchData, 2000);
-
-            // AI MONITOR: Validate deletion
-            setIsAiValidating(true);
-            const feedback = await validateWarehouseAction(
-                'Xóa lô hàng',
-                { sku: itemSku, hsd: itemDate },
-                inventorySummary
-            );
-            if (feedback) setAiFeedback({ type: 'warning', message: feedback });
-            setIsAiValidating(false);
 
         } catch (err) { showStatus('error', 'Lỗi khi xóa'); } finally { setIsSyncing(false); }
     };

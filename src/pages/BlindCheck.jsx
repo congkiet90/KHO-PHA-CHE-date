@@ -110,16 +110,6 @@ const BlindCheck = ({
                 setQuantity('');
                 setQuantity('');
                 setSearchTerm('');
-
-                // AI MONITOR: Validate the blind check entry
-                setIsAiValidating(true);
-                const feedback = await validateWarehouseAction(
-                    'Kiểm kho mù',
-                    { sku: selectedProduct.sku, name: selectedProduct.name, quantity: Number(quantity), hsd: hsdValue },
-                    inventorySummary
-                );
-                if (feedback) setAiFeedback({ type: 'info', message: feedback });
-                setIsAiValidating(false);
             }
         } catch (err) {
             showStatus('error', 'Lỗi lưu dữ liệu');
@@ -215,34 +205,7 @@ const BlindCheck = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            {/* AI Real-time Feedback */}
-            <AnimatePresence>
-                {aiFeedback && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className={`p-4 rounded-[20px] border flex items-start gap-3 shadow-md ${aiFeedback.type === 'warning'
-                            ? 'bg-amber-50 border-amber-100 text-amber-800'
-                            : 'bg-indigo-50 border-indigo-100 text-indigo-800'
-                            }`}
-                    >
-                        <Sparkles size={18} className={aiFeedback.type === 'warning' ? 'text-amber-500' : 'text-indigo-500'} />
-                        <div className="flex-1 text-sm">
-                            <span className="font-bold block mb-0.5">Thủ Kho AI:</span>
-                            {aiFeedback.message}
-                        </div>
-                        <button onClick={() => setAiFeedback(null)} className="opacity-40 hover:opacity-100"><X size={16} /></button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {isAiValidating && (
-                <div className="flex items-center gap-2 text-indigo-500 text-xs font-bold animate-pulse">
-                    <Loader2 size={12} className="animate-spin" />
-                    Thủ kho đang kiểm tra số liệu...
-                </div>
-            )}
+            {/* AI feedback gỡ bỏ theo yêu cầu */}
 
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">

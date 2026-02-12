@@ -36,41 +36,7 @@ const ImportExport = ({
                     />
                 </Suspense>
             )}
-            {/* AI Real-time Feedback Toast */}
-            <AnimatePresence>
-                {aiFeedback && (
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className={`p-4 rounded-2xl border flex items-start gap-3 shadow-xl ${aiFeedback.type === 'warning'
-                            ? 'bg-amber-50 border-amber-200 text-amber-800'
-                            : 'bg-indigo-50 border-indigo-200 text-indigo-800'
-                            }`}
-                    >
-                        <div className="mt-0.5">
-                            <Sparkles size={18} className={aiFeedback.type === 'warning' ? 'text-amber-500' : 'text-indigo-500'} />
-                        </div>
-                        <div className="flex-1 text-sm font-medium leading-relaxed">
-                            <span className="font-bold block mb-1">
-                                {aiFeedback.type === 'warning' ? 'Cảnh báo từ Thủ Kho AI' : 'Ghi chú từ Thủ Kho AI'}
-                            </span>
-                            {aiFeedback.message}
-                        </div>
-                        <button onClick={() => setAiFeedback(null)} className="p-1 hover:bg-black/5 rounded-lg transition-colors">
-                            <X size={16} className="opacity-40" />
-                        </button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* AI Validating Indicator */}
-            {isAiValidating && (
-                <div className="flex items-center gap-2 text-indigo-500 text-xs font-bold animate-pulse px-2">
-                    <Loader2 size={12} className="animate-spin" />
-                    Thủ kho đang kiểm tra giao dịch...
-                </div>
-            )}
+            {/* AI Elements gỡ bỏ theo yêu cầu */}
             {/* Header */}
             <div className="text-center space-y-2">
                 <h2 className="text-3xl font-bold text-black tracking-tight">Nhập Xuất Kho</h2>
