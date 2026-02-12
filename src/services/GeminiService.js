@@ -21,14 +21,40 @@ function getModel() {
 
         try {
             genAI = new GoogleGenerativeAI(cleanKey);
-            // Use gemini-1.5-flash which is the standard naming.
-            // Avoid '-latest' if it causes 404s in some environments.
-            model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
-                generationConfig: {
-                    maxOutputTokens: 2048,
+            // Try multiple models in order of preference to avoid 404/403 errors
+            const modelsToTry = [
+                "gemini-1.5-flash",
+                "gemini-1.5-flash-latest",
+                "gemini-1.5-flash-8b",
+                "gemini-1.5-pro"
+            ];
+
+            for (const modelName of modelsToTry) {
+                try {
+                    console.log(`GeminiService: Attempting to initialize with ${modelName}...`);
+                    model = genAI.getGenerativeModel({
+                        model: modelName,
+                        generationConfig: { maxOutputTokens: 2048 }
+                    });
+
+                    // Quick test for this specific model - optional but safer
+                    // If we want to be 100% sure, we'd need an async check here, 
+                    // but getGenerativeModel itself is synchronous.
+                    // The error usually happens during generateContent.
+
+                    if (model) {
+                        console.log(`GeminiService: Selected model ${modelName}`);
+                        break;
+                    }
+                } catch (e) {
+                    console.warn(`GeminiService: Failed to load ${modelName}, trying next...`, e);
                 }
-            });
+            }
+
+            if (!model) {
+                console.error("GeminiService: All model initializations failed.");
+                return null;
+            }
         } catch (e) {
             console.error("GeminiService: Initialization Error", e);
             return null;
