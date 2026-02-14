@@ -9,18 +9,25 @@ let model = null;
 const isOnline = () => navigator.onLine;
 
 // Helper to verify if a model works with a simple ping
+// Returns: { works: boolean, isQuotaError: boolean }
 async function verifyModel(modelInstance) {
-    if (!modelInstance) return false;
+    if (!modelInstance) return { works: false, isQuotaError: false };
     try {
         // Minimal effort ping to verify the model is accessible
         await modelInstance.generateContent({
             contents: [{ role: "user", parts: [{ text: "hi" }] }],
             generationConfig: { maxOutputTokens: 1 }
         });
-        return true;
+        return { works: true, isQuotaError: false };
     } catch (e) {
-        console.warn(`GeminiService: Model verification failed: ${e.message}`);
-        return false;
+        const msg = e.message || "";
+        const isQuota = msg.includes("429") || msg.includes("QUOTA_EXCEEDED");
+        if (isQuota) {
+            console.warn(`GeminiService: Model is VALID but Quota exceeded (429).`);
+            return { works: true, isQuotaError: true }; // Consider it "valid" so we don't fallback to 404 models
+        }
+        console.warn(`GeminiService: Model verification failed (likely 404): ${msg}`);
+        return { works: false, isQuotaError: false };
     }
 }
 
@@ -38,11 +45,11 @@ async function getModel() {
     try {
         genAI = new GoogleGenerativeAI(cleanKey);
         const modelsToTry = [
-            "gemini-3.0-flash", // Ưu tiên model mới nhất theo thông tin từ người dùng
+            "gemini-3.0-flash",
+            "gemini-3.0-flash-latest",
             "gemini-2.0-flash",
+            "gemini-2.0-flash-exp",
             "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-flash-8b",
             "gemini-1.5-pro"
         ];
 
@@ -54,12 +61,14 @@ async function getModel() {
                     generationConfig: { maxOutputTokens: 2048 }
                 });
 
-                // Crucial: getGenerativeModel is sync but doesn't verify existence.
-                // We perform a test call only during the first initialization.
-                const works = await verifyModel(tempModel);
+                const { works, isQuotaError } = await verifyModel(tempModel);
                 if (works) {
                     model = tempModel;
-                    console.log(`GeminiService: Successfully locked onto ${modelName}`);
+                    if (isQuotaError) {
+                        console.log(`GeminiService: Locked onto ${modelName} (Currently at Quota Limit)`);
+                    } else {
+                        console.log(`GeminiService: Successfully locked onto ${modelName}`);
+                    }
                     break;
                 }
             } catch (e) {
@@ -142,10 +151,14 @@ Ngôn ngữ: Tiếng Việt.
 const handleAIError = (e, context) => {
     console.error(`GeminiService [${context}]:`, e);
     const msg = e.message || "";
-    if (msg.includes("429")) return "Bạn đang hỏi quá nhanh (Giới hạn 15 câu/phút). Vui lòng đợi khoảng 1 phút rồi thử lại.";
-    if (msg.includes("404")) return `Lỗi 404: Không tìm thấy Model. Chi tiết: ${msg}`;
+    const modelName = model?.model || "AI";
+
+    if (msg.includes("429") || msg.includes("QUOTA_EXCEEDED")) {
+        return `Model ${modelName} đang hết lượt miễn phí (Quota exceeded). Vui lòng đợi 1 phút hoặc nâng cấp API Key.`;
+    }
+    if (msg.includes("404")) return `Lỗi 404: Model ${modelName} không tồn tại hoặc không được hỗ trợ cho Key này.`;
     if (msg.includes("401") || msg.includes("API_KEY_INVALID")) return "Lỗi xác thực: API Key không hợp lệ.";
-    if (msg.includes("403")) return "Lỗi quyền truy cập: Key của bạn không được dùng model này.";
+    if (msg.includes("403")) return `Lỗi 403: Key của bạn không có quyền dùng model ${modelName}.`;
     if (!isOnline()) return "Mất kết nối mạng.";
     return "Lỗi kết nối bộ não AI. Vui lòng kiểm tra console.";
 };
