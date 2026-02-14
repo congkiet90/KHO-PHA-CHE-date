@@ -9,11 +9,12 @@ let model = null;
 const isOnline = () => navigator.onLine;
 
 // Helper to verify if a model works with a simple ping
-// Returns: { works: boolean, isQuotaError: boolean }
+// Returns: { works: boolean, isQuotaError: boolean, error: string }
 async function verifyModel(modelInstance) {
-    if (!modelInstance) return { works: false, isQuotaError: false };
+    if (!modelInstance) return { works: false, isQuotaError: false, error: "No model instance" };
     try {
-        // Minimal effort ping to verify the model is accessible
+        console.log(`GeminiService: Sending verification ping to ${modelInstance.model}...`);
+        // Minimal effort ping
         await modelInstance.generateContent({
             contents: [{ role: "user", parts: [{ text: "hi" }] }],
             generationConfig: { maxOutputTokens: 1 }
@@ -21,13 +22,17 @@ async function verifyModel(modelInstance) {
         return { works: true, isQuotaError: false };
     } catch (e) {
         const msg = e.message || "";
-        const isQuota = msg.includes("429") || msg.includes("QUOTA_EXCEEDED");
+        const status = e.status || (e.response && e.response.status);
+
+        const isQuota = status === 429 || msg.includes("429") || msg.includes("QUOTA_EXCEEDED") || msg.includes("rate limit");
+
         if (isQuota) {
-            console.warn(`GeminiService: Model is VALID but Quota exceeded (429).`);
-            return { works: true, isQuotaError: true }; // Consider it "valid" so we don't fallback to 404 models
+            console.warn(`GeminiService: Model ${modelInstance.model} is VALID but Quota exceeded (429). Stop falling back.`);
+            return { works: true, isQuotaError: true };
         }
-        console.warn(`GeminiService: Model verification failed (likely 404): ${msg}`);
-        return { works: false, isQuotaError: false };
+
+        console.warn(`GeminiService: ${modelInstance.model} ping failed:`, { status, message: msg });
+        return { works: false, isQuotaError: false, error: msg };
     }
 }
 
@@ -55,24 +60,26 @@ async function getModel() {
 
         for (const modelName of modelsToTry) {
             try {
-                console.log(`GeminiService: Testing ${modelName}...`);
+                console.log(`GeminiService: Attempting discovery for ${modelName}...`);
                 const tempModel = genAI.getGenerativeModel({
                     model: modelName,
                     generationConfig: { maxOutputTokens: 2048 }
                 });
 
-                const { works, isQuotaError } = await verifyModel(tempModel);
+                const { works, isQuotaError, error } = await verifyModel(tempModel);
                 if (works) {
                     model = tempModel;
                     if (isQuotaError) {
-                        console.log(`GeminiService: Locked onto ${modelName} (Currently at Quota Limit)`);
+                        console.log(`GeminiService: Discovery STOPPED at ${modelName} due to Quota (429).`);
                     } else {
-                        console.log(`GeminiService: Successfully locked onto ${modelName}`);
+                        console.log(`GeminiService: Discovery SUCCESS for ${modelName}`);
                     }
                     break;
+                } else {
+                    console.log(`GeminiService: Skipping ${modelName} (Error: ${error})`);
                 }
             } catch (e) {
-                console.warn(`GeminiService: ${modelName} selection error:`, e.message);
+                console.warn(`GeminiService: Critical error during ${modelName} discovery:`, e.message);
             }
         }
 
