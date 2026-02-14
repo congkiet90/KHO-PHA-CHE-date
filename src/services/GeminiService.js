@@ -58,6 +58,8 @@ async function getModel() {
             "gemini-1.5-pro"
         ];
 
+        let foundAnyValidModel = false;
+
         for (const modelName of modelsToTry) {
             try {
                 console.log(`GeminiService: Attempting discovery for ${modelName}...`);
@@ -67,24 +69,37 @@ async function getModel() {
                 });
 
                 const { works, isQuotaError, error } = await verifyModel(tempModel);
+
                 if (works) {
                     model = tempModel;
+                    foundAnyValidModel = true;
+
                     if (isQuotaError) {
-                        console.log(`GeminiService: Discovery STOPPED at ${modelName} due to Quota (429).`);
+                        console.log(`GeminiService: [HARD-LOCK] Model ${modelName} exists but is at Quota Limit. Locking here to prevent 404 on older models.`);
                     } else {
-                        console.log(`GeminiService: Discovery SUCCESS for ${modelName}`);
+                        console.log(`GeminiService: [HARD-LOCK] Discovery SUCCESS for ${modelName}.`);
                     }
-                    break;
+                    break; // Exit loop, we found our target
                 } else {
-                    console.log(`GeminiService: Skipping ${modelName} (Error: ${error})`);
+                    // Check if error is something that implies the model DOES exist but key is blocked
+                    // Usually 403 Forbidden is a hard stop too.
+                    if (error && (error.includes("403") || error.includes("PERMISSION_DENIED"))) {
+                        console.warn(`GeminiService: [HARD-LOCK] Model ${modelName} denied (403). Locking here.`);
+                        model = tempModel;
+                        foundAnyValidModel = true;
+                        break;
+                    }
+                    console.log(`GeminiService: Skipping ${modelName} (Does not exist or 404)`);
                 }
             } catch (e) {
                 console.warn(`GeminiService: Critical error during ${modelName} discovery:`, e.message);
+                // If it's a structural error, we might want to log the whole thing
+                console.dir(e);
             }
         }
 
         if (!model) {
-            console.error("GeminiService: All models failed verification or are unavailable.");
+            console.error("GeminiService: All models failed verification. Your API Key might be invalid or has no access to basic models.");
         }
     } catch (e) {
         console.error("GeminiService: General Initialization Error", e);
