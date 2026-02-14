@@ -8,58 +8,72 @@ let model = null;
 
 const isOnline = () => navigator.onLine;
 
-function getModel() {
-    if (!model) {
-        if (!API_KEY) {
-            console.error("GeminiService: VITE_GEMINI_API_KEY is MISSING.");
-            return null;
-        }
-
-        // Ensure no hidden whitespace or newlines from env variables
-        const cleanKey = API_KEY.trim().replace(/[\n\r]/g, "");
-        console.log("GeminiService: Initializing...");
-
-        try {
-            genAI = new GoogleGenerativeAI(cleanKey);
-            // Try multiple models in order of preference to avoid 404/403 errors
-            const modelsToTry = [
-                "gemini-1.5-flash",
-                "gemini-1.5-flash-latest",
-                "gemini-1.5-flash-8b",
-                "gemini-1.5-pro"
-            ];
-
-            for (const modelName of modelsToTry) {
-                try {
-                    console.log(`GeminiService: Attempting to initialize with ${modelName}...`);
-                    model = genAI.getGenerativeModel({
-                        model: modelName,
-                        generationConfig: { maxOutputTokens: 2048 }
-                    });
-
-                    // Quick test for this specific model - optional but safer
-                    // If we want to be 100% sure, we'd need an async check here, 
-                    // but getGenerativeModel itself is synchronous.
-                    // The error usually happens during generateContent.
-
-                    if (model) {
-                        console.log(`GeminiService: Selected model ${modelName}`);
-                        break;
-                    }
-                } catch (e) {
-                    console.warn(`GeminiService: Failed to load ${modelName}, trying next...`, e);
-                }
-            }
-
-            if (!model) {
-                console.error("GeminiService: All model initializations failed.");
-                return null;
-            }
-        } catch (e) {
-            console.error("GeminiService: Initialization Error", e);
-            return null;
-        }
+// Helper to verify if a model works with a simple ping
+async function verifyModel(modelInstance) {
+    if (!modelInstance) return false;
+    try {
+        // Minimal effort ping to verify the model is accessible
+        await modelInstance.generateContent({
+            contents: [{ role: "user", parts: [{ text: "hi" }] }],
+            generationConfig: { maxOutputTokens: 1 }
+        });
+        return true;
+    } catch (e) {
+        console.warn(`GeminiService: Model verification failed: ${e.message}`);
+        return false;
     }
+}
+
+async function getModel() {
+    if (model) return model;
+
+    if (!API_KEY) {
+        console.error("GeminiService: VITE_GEMINI_API_KEY is MISSING.");
+        return null;
+    }
+
+    const cleanKey = API_KEY.trim().replace(/[\n\r]/g, "");
+    console.log("GeminiService: Initializing...");
+
+    try {
+        genAI = new GoogleGenerativeAI(cleanKey);
+        const modelsToTry = [
+            "gemini-3.0-flash", // Ưu tiên model mới nhất theo thông tin từ người dùng
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro"
+        ];
+
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`GeminiService: Testing ${modelName}...`);
+                const tempModel = genAI.getGenerativeModel({
+                    model: modelName,
+                    generationConfig: { maxOutputTokens: 2048 }
+                });
+
+                // Crucial: getGenerativeModel is sync but doesn't verify existence.
+                // We perform a test call only during the first initialization.
+                const works = await verifyModel(tempModel);
+                if (works) {
+                    model = tempModel;
+                    console.log(`GeminiService: Successfully locked onto ${modelName}`);
+                    break;
+                }
+            } catch (e) {
+                console.warn(`GeminiService: ${modelName} selection error:`, e.message);
+            }
+        }
+
+        if (!model) {
+            console.error("GeminiService: All models failed verification or are unavailable.");
+        }
+    } catch (e) {
+        console.error("GeminiService: General Initialization Error", e);
+    }
+
     return model;
 }
 
@@ -88,8 +102,8 @@ export const testGeminiConnection = async () => {
     if (!isOnline()) return { status: "offline", message: "Không có kết nối mạng" };
 
     try {
-        const testModel = getModel();
-        if (!testModel) return { status: "init_error", message: "Không thể khởi tạo Model" };
+        const testModel = await getModel();
+        if (!testModel) return { status: "init_error", message: "Không thể khởi tạo Model (Kiểm tra API Key/Model Name)" };
 
         const result = await testModel.generateContent("ping");
         const response = await result.response;
@@ -141,7 +155,7 @@ const handleAIError = (e, context) => {
  */
 export const validateWarehouseAction = async (actionType, actionData, inventoryData) => {
     if (!API_KEY) return null;
-    const model = getModel();
+    const model = await getModel();
     if (!model) return null;
 
     const prompt = `
@@ -166,8 +180,8 @@ export const validateWarehouseAction = async (actionType, actionData, inventoryD
  */
 export const getDeepInsights = async (inventorySummary) => {
     if (!API_KEY) return "Vui lòng cấu hình API Key.";
-    const model = getModel();
-    if (!model) return "Lỗi khởi tạo AI.";
+    const model = await getModel();
+    if (!model) return "Lỗi khởi tạo AI. Vui lòng kiểm tra API Key hoặc Model khả dụng.";
 
     const prompt = `
     ${SYSTEM_INSTRUCTION}
@@ -189,8 +203,8 @@ export const getDeepInsights = async (inventorySummary) => {
  */
 export const askVirtualManager = async (userMessage, inventoryContext) => {
     if (!API_KEY) return "Vui lòng cấu hình API Key để trò chuyện.";
-    const model = getModel();
-    if (!model) return "Lỗi khởi tạo AI.";
+    const model = await getModel();
+    if (!model) return "Lỗi khởi tạo AI. Vui lòng kiểm tra console.";
 
     const prompt = `
     ${SYSTEM_INSTRUCTION}
@@ -212,7 +226,7 @@ export const askVirtualManager = async (userMessage, inventoryContext) => {
  */
 export const scanProductImage = async (base64Image) => {
     if (!API_KEY) return { error: "Thiếu API Key" };
-    const model = getModel();
+    const model = await getModel();
     if (!model) return { error: "Lỗi khởi tạo AI." };
 
     const prompt = `
