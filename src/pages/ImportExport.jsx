@@ -1,9 +1,7 @@
-import React, { useState, lazy, Suspense } from 'react';
-import { Search, X, Loader2, Plus, Calendar, DownloadCloud, ClipboardCheck, Scan, Sparkles } from 'lucide-react';
+import { Search, X, Loader2, Plus, Calendar, DownloadCloud, ClipboardCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DateWheelPicker from '../components/DateWheelPicker';
 
-const AIScanner = lazy(() => import('../components/AIScanner'));
 
 const ImportExport = ({
     isAdjustment, setIsAdjustment,
@@ -14,29 +12,11 @@ const ImportExport = ({
     quantity, setQuantity,
     expiryDate, setExpiryDate,
     handleSave, isSyncing,
-    setSku, setName,
-    aiFeedback, setAiFeedback,
-    isAiValidating
+    setSku, setName
 }) => {
-    const [showScanner, setShowScanner] = useState(false);
-
-    const handleScanSuccess = (data) => {
-        if (data.name) setSearchTerm(data.name);
-        if (data.sku) setSku(data.sku);
-        if (data.expiryDate) setExpiryDate(data.expiryDate);
-    };
-
     return (
+
         <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
-            {showScanner && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
-                    <AIScanner
-                        onScanSuccess={handleScanSuccess}
-                        onClose={() => setShowScanner(false)}
-                    />
-                </Suspense>
-            )}
-            {/* AI Elements gỡ bỏ theo yêu cầu */}
             {/* Header */}
             <div className="text-center space-y-2">
                 <h2 className="text-3xl font-bold text-black tracking-tight">Nhập Xuất Kho</h2>
@@ -87,7 +67,7 @@ const ImportExport = ({
                             }}
                             onFocus={() => setShowSuggestions(true)}
                             placeholder="Gõ tên hoặc mã SKU..."
-                            className="w-full pl-12 pr-28 py-4 bg-[#F5F5F7] border border-transparent rounded-2xl text-black placeholder:text-stone-400 focus:bg-white focus:border-stone-300 focus:ring-4 focus:ring-stone-100 transition-all text-lg font-medium outline-none"
+                            className="w-full pl-12 pr-12 py-4 bg-[#F5F5F7] border border-transparent rounded-2xl text-black placeholder:text-stone-400 focus:bg-white focus:border-stone-300 focus:ring-4 focus:ring-stone-100 transition-all text-lg font-medium outline-none"
                         />
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={20} />
 
@@ -100,13 +80,6 @@ const ImportExport = ({
                                     <X size={18} />
                                 </button>
                             )}
-                            <button
-                                onClick={() => setShowScanner(true)}
-                                className="flex items-center gap-2 px-3 py-2 bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all text-xs font-bold"
-                            >
-                                <Scan size={16} />
-                                Quét AI
-                            </button>
                         </div>
 
                         {/* Suggestions Dropdown */}
@@ -189,3 +162,4 @@ const ImportExport = ({
 };
 
 export default ImportExport;
+

@@ -1,10 +1,19 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { AlertTriangle, TrendingUp, Package, Clock, Box } from 'lucide-react';
+
 // import AIInsights from '../components/AIInsights';
 
 const Dashboard = ({ inventorySummary }) => {
+    const [isReady, setIsReady] = React.useState(false);
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => setIsReady(true), 200);
+        return () => clearTimeout(timer);
+    }, []);
+
     // --- Data Analysis ---
+
     const totalItems = inventorySummary.length;
     const totalStock = inventorySummary.reduce((acc, item) => acc + item.totalQty, 0);
 
@@ -119,8 +128,8 @@ const Dashboard = ({ inventorySummary }) => {
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                         <TrendingUp size={18} className="text-blue-500" /> Tình trạng Hạn Sử Dụng
                     </h3>
-                    <div className="h-[256px] w-full min-w-0">
-                        {pieData.length > 0 ? (
+                    <div className="w-full h-[300px] min-w-0 overflow-hidden relative">
+                        {isReady && pieData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
@@ -142,7 +151,7 @@ const Dashboard = ({ inventorySummary }) => {
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
-                                Không có dữ liệu để hiển thị
+                                {!isReady ? "Đang chuẩn bị biểu đồ..." : "Không có dữ liệu để hiển thị"}
                             </div>
                         )}
                     </div>
@@ -153,8 +162,8 @@ const Dashboard = ({ inventorySummary }) => {
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                         <Package size={18} className="text-purple-500" /> Top Tồn Kho
                     </h3>
-                    <div className="h-[256px] w-full min-w-0">
-                        {barData.length > 0 ? (
+                    <div className="w-full h-[300px] min-w-0 overflow-hidden relative">
+                        {isReady && barData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={barData} layout="vertical">
                                     <XAxis type="number" hide />
@@ -165,7 +174,7 @@ const Dashboard = ({ inventorySummary }) => {
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
-                                Không có dữ liệu
+                                {!isReady ? "Đang chuẩn bị biểu đồ..." : "Không có dữ liệu"}
                             </div>
                         )}
                     </div>

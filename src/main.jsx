@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense, Component } from 'react';
 import ReactDOM from 'react-dom/client';
+import './index.css';
 
 import { CheckCircle2, AlertCircle, Loader2, Lock, Sparkles, LayoutGrid, Plus, Box, User, LogOut, Key, X, Menu, Users, Package, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,9 +16,7 @@ import ManageProducts from './pages/ManageProducts';
 import BlindCheck from './pages/BlindCheck';
 import BlindCheckResult from './pages/BlindCheckResult';
 import BlindCheckAdmin from './pages/BlindCheckAdmin';
-import { validateWarehouseAction } from './services/GeminiService';
 
-const VirtualManager = lazy(() => import('./components/VirtualManager'));
 
 // --- CONFIG ---
 const API_URL = import.meta.env.VITE_API_URL || "https://script.google.com/macros/s/AKfycbxbF8SZAU1Gg60KpsVp4cnlpKbQCzLV7JwCJhEJBYlNRsIyiv-Bs7E7w0aLH_wPVWIW/exec";
@@ -104,9 +103,6 @@ function App() {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [blindSession, setBlindSession] = useState(null);
 
-    // --- AI MONITOR STATE ---
-    const [aiFeedback, setAiFeedback] = useState(null);
-    const [isAiValidating, setIsAiValidating] = useState(false);
 
     useEffect(() => {
         safeSetItem('inventory_logs', JSON.stringify(logs));
@@ -465,8 +461,6 @@ function App() {
                             expiryDate={expiryDate} setExpiryDate={setExpiryDate}
                             handleSave={handleSave} isSyncing={isSyncing}
                             setSku={setSku} setName={setName}
-                            aiFeedback={aiFeedback} setAiFeedback={setAiFeedback}
-                            isAiValidating={isAiValidating}
                         />
                     )}
 
@@ -500,13 +494,10 @@ function App() {
                             products={availableProducts}
                             username={user.username}
                             showStatus={showStatus}
-                            aiFeedback={aiFeedback}
-                            setAiFeedback={setAiFeedback}
-                            isAiValidating={isAiValidating}
-                            setIsAiValidating={setIsAiValidating}
                             inventorySummary={inventorySummary}
                         />
                     )}
+
 
                     {view === 'blind-check-admin' && (
                         <BlindCheckAdmin
@@ -537,11 +528,6 @@ function App() {
                 </div>
             </main>
 
-            {/* AI Chat Assistant */}
-            <Suspense fallback={null}>
-                <VirtualManager inventoryContext={inventorySummary} />
-            </Suspense>
-
             {/* Mobile Bottom Nav */}
             <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/20 rounded-full shadow-2xl shadow-black/10 px-6 py-4 flex items-center gap-6 z-50">
                 <button onClick={() => setView('dashboard')} className={`transition-colors ${view === 'dashboard' ? 'text-black' : 'text-stone-400'}`}><LayoutGrid size={24} strokeWidth={2.5} /></button>
@@ -553,6 +539,7 @@ function App() {
 
             {/* Mobile Menu Dropdown */}
             <AnimatePresence>
+
                 {showMobileMenu && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -653,6 +640,7 @@ function App() {
     );
 }
 
+
 class ErrorBoundary extends Component {
     constructor(props) {
         super(props);
@@ -692,9 +680,14 @@ class ErrorBoundary extends Component {
     }
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-    <ErrorBoundary>
-        <App />
-    </ErrorBoundary>
-);
+const container = document.getElementById('root');
+if (container) {
+    if (!window.reactRoot) {
+        window.reactRoot = ReactDOM.createRoot(container);
+    }
+    window.reactRoot.render(
+        <ErrorBoundary>
+            <App />
+        </ErrorBoundary>
+    );
+}
